@@ -1,0 +1,8 @@
+newmtl wood_dark
+Kd 1 1 1
+map_Kd ../textures/wood_dark.png
+
+newmtl wood_panel
+Kd 1 1 1
+map_Kd ../textures/wood_panel.png
+

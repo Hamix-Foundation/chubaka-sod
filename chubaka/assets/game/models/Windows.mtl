@@ -1,0 +1,31 @@
+newmtl book_blue
+Kd 1 1 1
+map_Kd ../textures/book_blue.png
+
+newmtl curtain_grey
+Kd 1 1 1
+map_Kd ../textures/curtain_grey.png
+
+newmtl lace
+Kd 1 1 1
+map_Kd ../textures/lace.png
+
+newmtl leaf_brown
+Kd 1 1 1
+map_Kd ../textures/leaf_brown.png
+
+newmtl metal_black
+Kd 1 1 1
+map_Kd ../textures/metal_black.png
+
+newmtl plastic_white
+Kd 1 1 1
+map_Kd ../textures/plastic_white.png
+
+newmtl radiator
+Kd 1 1 1
+map_Kd ../textures/radiator.png
+
+newmtl vase_glass
+Kd 0.62 0.7 0.72
+

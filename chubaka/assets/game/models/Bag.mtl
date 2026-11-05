@@ -1,0 +1,8 @@
+newmtl cloth_dark
+Kd 1 1 1
+map_Kd ../textures/cloth_dark.png
+
+newmtl leather
+Kd 1 1 1
+map_Kd ../textures/leather.png
+

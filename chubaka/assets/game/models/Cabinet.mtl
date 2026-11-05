@@ -1,0 +1,28 @@
+newmtl black
+Kd 0.05 0.05 0.06
+
+newmtl book_blue
+Kd 1 1 1
+map_Kd ../textures/book_blue.png
+
+newmtl cabinet_red
+Kd 1 1 1
+map_Kd ../textures/cabinet_red.png
+
+newmtl cabinet_yellow
+Kd 1 1 1
+map_Kd ../textures/cabinet_yellow.png
+
+newmtl paper
+Kd 1 1 1
+map_Kd ../textures/paper.png
+
+newmtl red_plastic
+Kd 0.6 0.12 0.14
+
+newmtl steel
+Kd 0.55 0.56 0.58
+
+newmtl wicker
+Kd 0.72 0.68 0.58
+

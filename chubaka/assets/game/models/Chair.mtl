@@ -1,0 +1,8 @@
+newmtl metal_black
+Kd 1 1 1
+map_Kd ../textures/metal_black.png
+
+newmtl plywood
+Kd 1 1 1
+map_Kd ../textures/plywood.png
+

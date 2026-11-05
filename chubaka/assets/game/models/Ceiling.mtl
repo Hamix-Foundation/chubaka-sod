@@ -1,0 +1,19 @@
+newmtl ceiling
+Kd 1 1 1
+map_Kd ../textures/ceiling.png
+
+newmtl dark
+Kd 0.04 0.04 0.05
+
+newmtl wood_dark
+Kd 1 1 1
+map_Kd ../textures/wood_dark.png
+
+newmtl wood_old
+Kd 1 1 1
+map_Kd ../textures/wood_old.png
+
+newmtl wood_panel
+Kd 1 1 1
+map_Kd ../textures/wood_panel.png
+

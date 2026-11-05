@@ -1,0 +1,38 @@
+HX = 4.8
+HZ = 3.4
+WALL = 0.45
+WALL_TOP = 3.3
+CROWN = 0.7
+PANEL = 1.15
+WINDOW_Z = (-0.8, 1.2)
+WINDOW_W = 1.5
+WINDOW_Y0 = 1.0
+WINDOW_Y1 = 2.95
+DOOR_X0 = 0.8
+DOOR_X1 = 2.2
+DOOR_H = 2.3
+DOOR_DEPTH = 0.2
+DOOR_Z = -HZ - DOOR_DEPTH
+LEAF_W = (DOOR_X1 - DOOR_X0) / 2.0
+HOLE = (-1.35, -0.55, -0.1, 1.2)
+ROWS_X = (-1.8, 0.6, 3.0)
+DESKS_Z = (-2.1, -0.9, 0.3, 1.5)
+BOARD_Z = (-2.7, 1.7)
+BOARD_Y = (0.9, 2.1)
+CABINET_X = (2.4, 4.2)
+RACK_X = (-3.7, -1.1)
+MAP_Z = (-3.05, -1.65)
+MAP_Y = (1.25, 2.19)
+TEACHER_DESK = (-4.38, 2.6)
+TEACHER_CHAIR = (-3.35, 2.6)
+CORRIDOR_W = 3.6
+CORRIDOR_X = (-9.0, 9.0)
+CORRIDOR_H = 3.2
+PASSAGE_X = (-1.8, 3.2)
+PASSAGE_D = 6.0
+GROUND_Y = -1.8
+DESK_SCALE = 0.78
+
+
+def ceiling_y(x):
+    return WALL_TOP + CROWN * (1.0 - (x / HX) ** 2)

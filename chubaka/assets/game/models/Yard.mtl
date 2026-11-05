@@ -1,0 +1,70 @@
+newmtl bark
+Kd 1 1 1
+map_Kd ../textures/bark.png
+
+newmtl blue_door
+Kd 0.16 0.34 0.62
+
+newmtl boards
+Kd 0.5 0.4 0.28
+
+newmtl brick
+Kd 1 1 1
+map_Kd ../textures/brick.png
+
+newmtl bush
+Kd 1 1 1
+map_Kd ../textures/bush.png
+
+newmtl dark
+Kd 0.04 0.04 0.05
+
+newmtl graffiti
+Kd 1 1 1
+map_Kd ../textures/graffiti.png
+
+newmtl grass
+Kd 1 1 1
+map_Kd ../textures/grass.png
+
+newmtl metal_black
+Kd 1 1 1
+map_Kd ../textures/metal_black.png
+
+newmtl panel_wall
+Kd 1 1 1
+map_Kd ../textures/panel_wall.png
+
+newmtl plastic_white
+Kd 1 1 1
+map_Kd ../textures/plastic_white.png
+
+newmtl red_plastic
+Kd 0.6 0.12 0.14
+
+newmtl roof
+Kd 1 1 1
+map_Kd ../textures/roof.png
+
+newmtl rubble
+Kd 1 1 1
+map_Kd ../textures/rubble.png
+
+newmtl soil
+Kd 1 1 1
+map_Kd ../textures/soil.png
+
+newmtl steel
+Kd 0.55 0.56 0.58
+
+newmtl stucco_peel
+Kd 1 1 1
+map_Kd ../textures/stucco_peel.png
+
+newmtl window_dark
+Kd 0.12 0.13 0.16
+
+newmtl wing_wall
+Kd 1 1 1
+map_Kd ../textures/wing_wall.png
+

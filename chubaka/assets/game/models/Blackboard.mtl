@@ -1,0 +1,12 @@
+newmtl chalkboard
+Kd 1 1 1
+map_Kd ../textures/chalkboard.png
+
+newmtl plastic_white
+Kd 1 1 1
+map_Kd ../textures/plastic_white.png
+
+newmtl wood_dark
+Kd 1 1 1
+map_Kd ../textures/wood_dark.png
+

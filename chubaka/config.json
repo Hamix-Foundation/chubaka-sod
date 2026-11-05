@@ -1,0 +1,10 @@
+{
+  "version": "dev-test-0.5.2",
+  "publisher": "Hamix Foundation",
+  "copyright_year": 2026,
+  "license": "GNU GPL v3.0",
+  "links": {
+    "github": "https://github.com/Hamix-Foundation/chubaka-sod",
+    "discord": "https://discord.gg/kEKhRRPr7"
+  }
+}

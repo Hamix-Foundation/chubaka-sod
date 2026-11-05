@@ -1,0 +1,50 @@
+newmtl black
+Kd 0.05 0.05 0.06
+
+newmtl cardboard
+Kd 1 1 1
+map_Kd ../textures/cardboard.png
+
+newmtl corridor_cream
+Kd 1 1 1
+map_Kd ../textures/corridor_cream.png
+
+newmtl corridor_green
+Kd 1 1 1
+map_Kd ../textures/corridor_green.png
+
+newmtl corridor_wood
+Kd 1 1 1
+map_Kd ../textures/corridor_wood.png
+
+newmtl dark
+Kd 0.04 0.04 0.05
+
+newmtl extinguisher
+Kd 0.62 0.1 0.08
+
+newmtl green_sign
+Kd 0.1 0.55 0.22
+
+newmtl lamp_shade
+Kd 1 1 1
+map_Kd ../textures/lamp_shade.png
+
+newmtl plastic_white
+Kd 1 1 1
+map_Kd ../textures/plastic_white.png
+
+newmtl steel
+Kd 0.55 0.56 0.58
+
+newmtl stripe_dark
+Kd 0.12 0.3 0.2
+
+newmtl terrazzo
+Kd 1 1 1
+map_Kd ../textures/terrazzo.png
+
+newmtl wood_dark
+Kd 1 1 1
+map_Kd ../textures/wood_dark.png
+

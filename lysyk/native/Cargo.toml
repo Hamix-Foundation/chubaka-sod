@@ -1,0 +1,58 @@
+[package]
+name = "lysyk_engine"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Lysyk engine: Rust core with PyO3 bindings, wgpu (Vulkan / OpenGL) renderer"
+license = "MIT"
+
+[lib]
+name = "_native"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["backend-vulkan", "backend-gl", "extension-module", "abi3"]
+extension-module = ["pyo3/extension-module"]
+abi3 = ["pyo3/abi3-py39"]
+android-host = ["pyo3/auto-initialize"]
+backend-vulkan = ["wgpu/vulkan"]
+backend-gl = ["wgpu/gles"]
+backend-metal = ["wgpu/metal"]
+backend-dx12 = ["wgpu/dx12"]
+
+[dependencies]
+pyo3 = { version = "0.30" }
+numpy = "0.30"
+wgpu = { version = "30", default-features = false, features = ["wgsl", "parking_lot"] }
+fontdue = "0.9"
+png = "0.18"
+zune-jpeg = { version = "0.4", default-features = false, features = ["std", "x86", "neon"] }
+zune-core = "0.4"
+pollster = "1.0"
+bytemuck = { version = "1.25", features = ["derive"] }
+pyo3-log = "0.13"
+log = "0.4"
+rayon = "1.10"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+arboard = { version = "3", default-features = false, features = ["wayland-data-control"] }
+winit = { version = "0.30", default-features = false, features = ["rwh_06", "x11", "wayland", "wayland-dlopen"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+winit = { version = "0.30", default-features = false, features = ["rwh_06", "android-native-activity"] }
+android_logger = "0.14"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+panic = "unwind"
+strip = true
+
+[profile.fast]
+inherits = "release"
+opt-level = 2
+lto = false
+codegen-units = 16
+incremental = true
+strip = false

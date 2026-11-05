@@ -1,0 +1,9 @@
+newmtl desk_frame
+Kd 0.07 0.07 0.08
+
+newmtl desk_shelf
+Kd 0.55 0.42 0.28
+
+newmtl desk_top
+Kd 0.84 0.74 0.55
+

@@ -1,0 +1,4 @@
+newmtl plaster
+Kd 1 1 1
+map_Kd ../textures/plaster.png
+

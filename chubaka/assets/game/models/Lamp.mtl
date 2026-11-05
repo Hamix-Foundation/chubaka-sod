@@ -1,0 +1,12 @@
+newmtl metal_black
+Kd 1 1 1
+map_Kd ../textures/metal_black.png
+
+newmtl plaster_dark
+Kd 1 1 1
+map_Kd ../textures/plaster_dark.png
+
+newmtl plastic_white
+Kd 1 1 1
+map_Kd ../textures/plastic_white.png
+
