@@ -15,7 +15,7 @@ from lysyk.profile import PROFILES, resolve
 
 
 def android_device():
-    return "ANDROID_ROOT" in os.environ and "ANDROID_DATA" in os.environ
+    return "LYSYK_ROOT" in os.environ or ("ANDROID_ROOT" in os.environ and "ANDROID_DATA" in os.environ)
 
 
 APP_NAME = "ChubakaSOD"

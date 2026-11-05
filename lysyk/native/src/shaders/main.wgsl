@@ -47,6 +47,9 @@ fn sky_color(dir: vec3<f32>) -> vec3<f32> {
 }
 
 fn apply_fog(c: vec3<f32>, wpos: vec3<f32>) -> vec3<f32> {
+    if (g.fog.w <= 0.00001) {
+        return c;
+    }
     let dv = wpos - g.cam.xyz;
     let dist = length(dv);
     let d = dist * g.fog.w;

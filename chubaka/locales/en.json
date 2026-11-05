@@ -43,5 +43,6 @@
   "hint_tap": "Tap the door to go to it",
   "hint_click": "Click the door to go to it",
   "hint_hold_touch": "Touch and hold to keep it shut",
-  "hint_hold": "Hold to keep the door shut"
+  "hint_hold": "Hold to keep the door shut",
+  "hold_door": "HOLD DOOR"
 }

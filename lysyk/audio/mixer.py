@@ -112,7 +112,7 @@ class Audio:
         return self.device is not None
 
     def _open(self):
-        if "ANDROID_ROOT" in os.environ:
+        if "LYSYK_ROOT" in os.environ or ("ANDROID_ROOT" in os.environ and "ANDROID_DATA" in os.environ):
             try:
                 from jnius import autoclass
                 AudioAttributes = autoclass("android.media.AudioAttributes")

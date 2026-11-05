@@ -63,14 +63,15 @@ class ClassroomScene(Scene):
         self.rig = PoseRig(SEAT)
         self.camera = Camera(62.0)
         self.interaction = Interaction()
-        self.light_button = Button("", 1060, 640, 200, 56, self.toggle_light, 28)
+        self.light_button = Button("", 1036, 624, 220, 72, self.toggle_light, 28)
         self.light_button.arrow = False
-        self.back_button = Button("", 20, 20, 180, 56, self.go_seat, 28)
+        self.back_button = Button("", 24, 624, 220, 72, self.go_seat, 28)
         self.back_button.arrow = False
         self.buttons = [self.light_button, self.back_button]
         self.touch_buttons = {}
         self.touch_hold = set()
         self.touch_start = {}
+        self.hold_rect = (520, 624, 240, 72)
         self.mouse_hold = False
         self.key_hold = False
         self.power = 100
@@ -129,6 +130,9 @@ class ClassroomScene(Scene):
         profile = game.profile
         self.lighting = Lighting()
         configure_lighting(self.lighting)
+        if profile["detail"] == 0:
+            self.lighting.fog_density = 0.0
+            self.lighting.fog_scatter = 0.0
         self.renderer = Renderer(game, self.lighting)
         for key, value in (("shadow_quality", profile["shadow_quality"]), ("shadow_range", profile["shadow_range"])):
             if hasattr(self.renderer, key):
@@ -146,15 +150,17 @@ class ClassroomScene(Scene):
         self.world.add(self.torch)
         self.tube_objects = []
         self.tube_lights = []
-        for x, y, z in data.tubes:
+        for index, (x, y, z) in enumerate(data.tubes):
             obj = GameObject(data.tube_mesh, TUBE_COLOR, position=(x, y, z), mode=MODE_GLOW)
             self.world.add(obj)
             self.tube_objects.append(obj)
-            light = PointLight((x, y - 0.4, z), (0.78, 0.92, 1.0), 0.6, 5.0)
-            self.lighting.add_light(light)
-            self.tube_lights.append(light)
-        self.lighting.add_light(PointLight((-0.5, 2.4, 0.4), (0.45, 0.55, 0.95), 0.14, 6.0))
-        self.lighting.add_light(PointLight((DOOR_CENTER - 1.0, 2.7, DOOR_Z - 2.4), (0.6, 0.75, 0.65), 0.2, 4.5))
+            if profile["detail"] > 0 or index == 0:
+                light = PointLight((x, y - 0.4, z), (0.78, 0.92, 1.0), 0.6, 5.0)
+                self.lighting.add_light(light)
+                self.tube_lights.append(light)
+        if profile["detail"] > 0:
+            self.lighting.add_light(PointLight((-0.5, 2.4, 0.4), (0.45, 0.55, 0.95), 0.14, 6.0))
+            self.lighting.add_light(PointLight((DOOR_CENTER - 1.0, 2.7, DOOR_Z - 2.4), (0.6, 0.75, 0.65), 0.2, 4.5))
         self.flashlight = Flashlight(self.lighting, intensity=3.4, radius=14.0)
         leaf = GameObject(data.door_leaf, cast=True, gloss=0.05)
         self.world.add(leaf)
@@ -250,7 +256,7 @@ class ClassroomScene(Scene):
         self.state = "door"
         self.look = LookController(self.rig.pose.yaw, center=DOOR_STAND.yaw, limit=DOOR_LOOK)
         self.look.mouse_x = self.game.mouse_x / max(1.0, self.game.width) * self.game.stage.width
-        self.look.set_mobile(False)
+        self.look.set_mobile(self.game.is_mobile)
         if self.tutorial and self.hint_stage == 2:
             self.hint_stage = 3
             self.hint_timer = HINT_HOLD_TIME
@@ -320,7 +326,7 @@ class ClassroomScene(Scene):
         if self.rig.busy:
             self.rig.update(dt)
         else:
-            self.look.set_mobile(self.game.is_mobile and self.state == "seat")
+            self.look.set_mobile(self.game.is_mobile and self.state in ("seat", "door"))
             self.look.update(dt)
         for b in self.buttons:
             b.update(dt)
@@ -397,13 +403,16 @@ class ClassroomScene(Scene):
                 if b.press(x, y):
                     self.touch_buttons[touch_id] = b
                     return
-            if self.state == "door":
+            hx, hy, hw, hh = self.hold_rect
+            if self.state == "door" and hx <= x <= hx + hw and hy <= y <= hy + hh:
                 self.touch_hold.add(touch_id)
                 return
             self.touch_start[touch_id] = (self.time, x, y)
+            self.look.touch(touch_id, phase, x, y)
         elif phase == "move":
             if touch_id in self.touch_buttons or touch_id in self.touch_hold:
                 return
+            self.look.touch(touch_id, phase, x, y)
         else:
             button = self.touch_buttons.pop(touch_id, None)
             if button is not None:
@@ -413,16 +422,18 @@ class ClassroomScene(Scene):
                 self.touch_hold.discard(touch_id)
                 return
             start = self.touch_start.pop(touch_id, None)
+            self.look.touch(touch_id, phase, x, y)
             if phase == "up" and start is not None and self.state == "seat":
                 if self.time - start[0] < TAP_TIME and math.hypot(x - start[1], y - start[2]) < TAP_MOVE:
                     self.interaction.click()
-        if self.state == "seat":
-            self.look.touch(touch_id, phase, x, y)
 
     def suspend(self):
         self.mouse_hold = self.key_hold = False
         self.touch_hold.clear()
         self.touch_buttons.clear()
+        self.touch_start.clear()
+        self.look.touches.clear()
+        self.look.touch_direction = 0
 
     def apply_camera(self, position, yaw, roll):
         t = self.time
@@ -456,6 +467,10 @@ class ClassroomScene(Scene):
                 sc.text(text, 640, 585, HUD_WHITE, 26, "center", "top", False, True)
         if self.state == "door":
             self.back_button.draw(sc)
-        self.light_button.label = "Light: on" if self.flashlight.on else "Light: off"
+            x, y, w, h = self.hold_rect
+            sc.rect(x, y, w, h, (26, 26, 26, 210), 4)
+            sc.text(translate(self.game.settings.language, "hold_door"), x + w / 2, y + h / 2, HUD_WHITE, 23, "center", "center", True)
+        light_state = translate(self.game.settings.language, "on" if self.flashlight.on else "off")
+        self.light_button.label = f"{translate(self.game.settings.language, 'light')}: {light_state}"
         self.light_button.draw(sc)
         self.game.fx.draw(sc, grain=0.045, scanlines=0.04, vignette=0.0 if self.game.quality == "low" else 0.7, glitch_bars=False)

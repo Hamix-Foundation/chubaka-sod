@@ -4,7 +4,7 @@ import sys
 import tarfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SKIP_DIRS = {"__pycache__", "test", "tests", "idlelib", "tkinter", "turtledemo", "lib2to3", "ensurepip", "pydoc_data", "distutils", "venv", "config-3.13-aarch64-linux-android"}
+SKIP_DIRS = {"__pycache__", "test", "tests", "idlelib", "tkinter", "turtledemo", "lib2to3", "ensurepip", "pydoc_data", "distutils", "venv", "target", "config-3.13-aarch64-linux-android"}
 SKIP_SUFFIX = (".pyc", ".pyo", ".a", ".import", ".md", ".txt~")
 SKIP_NAMES = {"_native.abi3.so"}
 

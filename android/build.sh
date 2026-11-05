@@ -184,9 +184,13 @@ if [[ -n "${P4A_STORAGE:-}" ]]; then
 fi
 
 BUNDLE_ARGS=(--python-prefix "$ANDROID_PYTHON_PREFIX")
-if [[ -n "${ANDROID_SITE_PACKAGES:-}" ]]; then
-    [[ -d "$ANDROID_SITE_PACKAGES/numpy" ]] || fail "ANDROID_SITE_PACKAGES must contain the Android numpy package"
+if [[ -z "${ANDROID_SITE_PACKAGES:-}" ]]; then
+    ANDROID_SITE_PACKAGES="$ROOT/.android/p4a/storage/dists/lysykandroid/_python_bundle__${ABI}/_python_bundle/site-packages"
+fi
+if [[ -d "$ANDROID_SITE_PACKAGES/numpy" ]]; then
     BUNDLE_ARGS+=(--site-packages "$ANDROID_SITE_PACKAGES")
+else
+    fail "Android site-packages not found at $ANDROID_SITE_PACKAGES"
 fi
 python3 "$ROOT/tools/android_bundle.py" "${BUNDLE_ARGS[@]}"
 
