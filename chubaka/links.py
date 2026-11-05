@@ -7,14 +7,8 @@ def open_url(url):
         return
     if "LYSYK_ROOT" in os.environ or ("ANDROID_ROOT" in os.environ and "ANDROID_DATA" in os.environ):
         try:
-            from jnius import autoclass
-            ActivityThread = autoclass("android.app.ActivityThread")
-            Intent = autoclass("android.content.Intent")
-            Uri = autoclass("android.net.Uri")
-            app = ActivityThread.currentApplication()
-            intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            app.startActivity(intent)
+            from lysyk.engine._native import android_open_url
+            android_open_url(url)
             return
         except Exception:
             pass

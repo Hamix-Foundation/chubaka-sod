@@ -41,6 +41,7 @@ winit = { version = "0.30", default-features = false, features = ["rwh_06", "x11
 [target.'cfg(target_os = "android")'.dependencies]
 winit = { version = "0.30", default-features = false, features = ["rwh_06", "android-native-activity"] }
 android_logger = "0.14"
+jni = "0.22"
 
 [profile.release]
 opt-level = 3

@@ -114,14 +114,8 @@ class Audio:
     def _open(self):
         if "LYSYK_ROOT" in os.environ or ("ANDROID_ROOT" in os.environ and "ANDROID_DATA" in os.environ):
             try:
-                from jnius import autoclass
-                AudioAttributes = autoclass("android.media.AudioAttributes")
-                AudioAttributesBuilder = autoclass("android.media.AudioAttributes$Builder")
-                SoundPoolBuilder = autoclass("android.media.SoundPool$Builder")
-                attributes = AudioAttributesBuilder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()
-                pool = SoundPoolBuilder().setMaxStreams(16).setAudioAttributes(attributes).build()
-                self.android_pool = pool
-                self.android_classes = autoclass
+                from lysyk.engine._native import AndroidSoundPool
+                self.android_pool = AndroidSoundPool()
                 return
             except Exception:
                 self.android_pool = None
@@ -159,17 +153,7 @@ class Audio:
         if snd is None:
             if self.android_pool is not None:
                 try:
-                    sound_id = self.android_pool.load(path, 1)
-                    duration = 0.0
-                    try:
-                        MediaMetadataRetriever = self.android_classes("android.media.MediaMetadataRetriever")
-                        metadata = MediaMetadataRetriever()
-                        metadata.setDataSource(path)
-                        duration_ms = metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                        duration = float(duration_ms or 0) / 1000.0
-                        metadata.release()
-                    except Exception:
-                        pass
+                    sound_id, duration = self.android_pool.load(path)
                     snd = Sound(None, path, sound_id, duration)
                 except Exception:
                     snd = Sound(np.zeros((0, 2), dtype=np.int16), path)
@@ -203,7 +187,7 @@ class Audio:
         if isinstance(sound, str):
             sound = self.load(sound)
         if self.android_pool is not None and sound.native_id is not None:
-            stream = self.android_pool.play(sound.native_id, 0.0, 0.0, 1, -1 if loop else 0, 1.0)
+            stream = self.android_pool.play(sound.native_id, 0.0, 0.0, -1 if loop else 0)
             voice = AndroidVoice(sound, volume, loop, bus, stream, fade_in)
             with self.lock:
                 self.voices.append(voice)
@@ -231,7 +215,7 @@ class Audio:
         self.paused = True
         if self.android_pool is not None:
             try:
-                self.android_pool.autoPause()
+                self.android_pool.auto_pause()
             except Exception:
                 pass
         if self.device is not None:
@@ -244,7 +228,7 @@ class Audio:
         self.paused = False
         if self.android_pool is not None:
             try:
-                self.android_pool.autoResume()
+                self.android_pool.auto_resume()
             except Exception:
                 pass
         if self.device is not None and self._gen is not None:
@@ -322,11 +306,11 @@ class AndroidVoice:
         gain = max(0.0, min(1.0, self.volume * bus_gain * self.gain))
         if self.stream:
             try:
-                pool.setVolume(self.stream, gain, gain)
+                pool.set_volume(self.stream, gain, gain)
             except Exception:
                 self.finished = True
         elif self.sound.native_id is not None:
-            self.stream = pool.play(self.sound.native_id, gain, gain, 1, -1 if self.loop else 0, 1.0)
+            self.stream = pool.play(self.sound.native_id, gain, gain, -1 if self.loop else 0)
 
     def pause(self):
         if self.stream and not self.paused:

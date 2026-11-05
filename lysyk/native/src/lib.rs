@@ -15,6 +15,8 @@ mod window;
 
 #[cfg(all(target_os = "android", feature = "android-host"))]
 mod android;
+#[cfg(all(target_os = "android", feature = "android-host"))]
+mod android_audio;
 
 use pyo3::prelude::*;
 
@@ -50,6 +52,8 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     devtools::register(m)?;
     m.add_function(wrap_pyfunction!(log_line, m)?)?;
     m.add_function(wrap_pyfunction!(rustc_version, m)?)?;
+    #[cfg(all(target_os = "android", feature = "android-host"))]
+    android_audio::register(m)?;
     Ok(())
 }
 

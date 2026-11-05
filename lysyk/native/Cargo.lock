@@ -910,6 +910,7 @@ dependencies = [
  "arboard",
  "bytemuck",
  "fontdue",
+ "jni",
  "log",
  "numpy",
  "png",

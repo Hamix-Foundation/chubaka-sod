@@ -65,7 +65,7 @@ class ClassroomScene(Scene):
         self.interaction = Interaction()
         self.light_button = Button("", 1036, 624, 220, 72, self.toggle_light, 28)
         self.light_button.arrow = False
-        self.back_button = Button("", 24, 624, 220, 72, self.go_seat, 28)
+        self.back_button = Button("", 24, 24, 220, 72, self.go_seat, 28)
         self.back_button.arrow = False
         self.buttons = [self.light_button, self.back_button]
         self.touch_buttons = {}
