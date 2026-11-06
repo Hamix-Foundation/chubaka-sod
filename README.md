@@ -101,7 +101,7 @@ Run the test suite with:
 python -m pytest
 ```
 
-Convert a supported video source into the game's `.lyv` format with:
+Convert a supported video source into one `.lyv` file with embedded audio:
 
 ```bash
 python tools/make_video.py input.ogv output.lyv

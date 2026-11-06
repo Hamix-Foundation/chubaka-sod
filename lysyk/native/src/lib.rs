@@ -3,20 +3,19 @@ mod devtools;
 mod gpu;
 mod keys;
 mod lighting;
+mod media;
 mod mesh;
 mod noise;
 mod object;
 mod particles;
+mod platform;
 mod renderer;
 mod scene;
 mod store;
-mod video;
 mod window;
 
 #[cfg(all(target_os = "android", feature = "android-host"))]
 mod android;
-#[cfg(all(target_os = "android", feature = "android-host"))]
-mod android_audio;
 
 use pyo3::prelude::*;
 
@@ -47,13 +46,13 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     noise::register(m)?;
     canvas::register(m)?;
     renderer::register(m)?;
-    video::register(m)?;
+    media::video::register(m)?;
     window::register(m)?;
     devtools::register(m)?;
     m.add_function(wrap_pyfunction!(log_line, m)?)?;
     m.add_function(wrap_pyfunction!(rustc_version, m)?)?;
     #[cfg(all(target_os = "android", feature = "android-host"))]
-    android_audio::register(m)?;
+    platform::android_audio::register(m)?;
     Ok(())
 }
 

@@ -187,7 +187,8 @@ class Audio:
         if isinstance(sound, str):
             sound = self.load(sound)
         if self.android_pool is not None and sound.native_id is not None:
-            stream = self.android_pool.play(sound.native_id, 0.0, 0.0, -1 if loop else 0)
+            initial_gain = self.master * self.buses.get(bus, 1.0) * volume * (0.0 if fade_in > 0.0 else 1.0)
+            stream = self.android_pool.play(sound.native_id, initial_gain, initial_gain, -1 if loop else 0)
             voice = AndroidVoice(sound, volume, loop, bus, stream, fade_in)
             with self.lock:
                 self.voices.append(voice)
@@ -280,6 +281,11 @@ class AndroidVoice:
         self.target = 1.0
         self.rate = 1.0 / fade_in if fade_in > 0 else 0.0
         self.elapsed = 0.0
+        self.last_gain = None
+
+    @property
+    def position(self):
+        return self.elapsed
 
     def stop(self, fade=0.0):
         if fade > 0:
@@ -294,7 +300,17 @@ class AndroidVoice:
                 pool.stop(self.stream)
                 self.stream = 0
             return
-        self.elapsed += dt
+        if self.stream <= -1_000_000:
+            try:
+                current = pool.position(self.stream)
+            except Exception:
+                current = -1.0
+            if current >= 0.0:
+                self.elapsed = current
+            else:
+                self.elapsed += dt
+        else:
+            self.elapsed += dt
         if not self.loop and self.sound.duration > 0 and self.elapsed > self.sound.duration + 0.5:
             self.finished = True
             return
@@ -304,9 +320,10 @@ class AndroidVoice:
             if self.gain == 0.0 and self.target == 0.0:
                 self.finished = True
         gain = max(0.0, min(1.0, self.volume * bus_gain * self.gain))
-        if self.stream:
+        if self.stream and (self.last_gain is None or abs(gain - self.last_gain) >= 0.005):
             try:
                 pool.set_volume(self.stream, gain, gain)
+                self.last_gain = gain
             except Exception:
                 self.finished = True
         elif self.sound.native_id is not None:

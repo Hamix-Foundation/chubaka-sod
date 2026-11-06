@@ -3,7 +3,7 @@ from chubaka.settings_ui import translate
 from chubaka.widgets import Button
 from lysyk.engine.scenes import Scene
 from lysyk.engine.texture import FIT_STRETCH
-from lysyk.engine.video import VideoPlayer
+from lysyk.engine.media.video import VideoPlayer
 
 
 class CutsceneScene(Scene):

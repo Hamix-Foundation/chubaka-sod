@@ -18,7 +18,7 @@ TITLE_TEXT = "Chubaka: \nThe Smell Of Death"
 class TitleScene(Scene):
     def __init__(self, game):
         super().__init__(game)
-        self.valeria = game.canvas.load_texture(asset("valeria.png"))
+        self.chubaka = game.canvas.load_texture(asset("chubaka.png"))
         self.game_config = load_game_config()
         self.version = load_version()
         self.buttons = [Button("", 24, 419, 406, 58, self.new_game), Button("", 24, 481, 406, 58, self.continue_game)]
@@ -34,6 +34,7 @@ class TitleScene(Scene):
         self.settings_open = False
         self.refresh_labels()
         self.music = None
+        game.audio.preload([asset("audio", "title_music.mp3")])
         self.time = 0.0
         self.rand = random.Random(11)
         self.next_glitch = 2.0
@@ -167,7 +168,7 @@ class TitleScene(Scene):
         breathe = 1.0 + 0.012 * math.sin(self.time * 1.3)
         w = 500 * breathe
         h = 500 * breathe
-        sc.image(self.valeria, 785 - (w - 500) / 2 + sway, 219 - (h - 500), w, h, (255, 255, 255, int(255 * fade_in)))
+        sc.image(self.chubaka, 785 - (w - 500) / 2 + sway, 219 - (h - 500), w, h, (255, 255, 255, int(255 * fade_in)))
         flick = 1.0 if self.rand.random() > 0.02 else 0.55
         a = int(255 * fade_in * flick)
         shift = self.title_shift

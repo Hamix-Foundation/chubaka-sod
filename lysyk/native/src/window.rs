@@ -1,3 +1,4 @@
+#[cfg(not(target_os = "android"))]
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};

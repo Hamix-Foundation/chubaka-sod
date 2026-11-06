@@ -4,7 +4,8 @@ import struct
 import subprocess
 import sys
 
-MAGIC = b"LYV1"
+MAGIC = b"LYV2"
+HEADER_SIZE = 40
 
 
 def split_jpegs(blob):
@@ -31,12 +32,17 @@ def frame_times(src):
     return times
 
 
-def has_audio(src):
+def extract_audio(src):
     out = subprocess.run(
         ["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_type", "-of", "csv=p=0", src],
         capture_output=True, text=True,
     ).stdout
-    return "audio" in out
+    if "audio" not in out:
+        return b""
+    return subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", src, "-vn", "-c:a", "libvorbis", "-q:a", "4", "-f", "ogg", "pipe:1"],
+        check=True, capture_output=True,
+    ).stdout
 
 
 def convert(src, dst, quality=8, max_width=0):
@@ -64,22 +70,18 @@ def convert(src, dst, quality=8, max_width=0):
         w = max_width
     span = times[-1] if n > 1 else 1.0
     fps = (n - 1) / span if n > 1 and span > 0 else 25.0
-    header = MAGIC + struct.pack("<IIIfI", w, h, n, fps, 0)
-    offset = len(header) + n * 16
+    audio = extract_audio(src)
+    offset = HEADER_SIZE + n * 16
     table = bytearray()
     for f, t in zip(frames, times):
         table += struct.pack("<QII", offset, len(f), int(round(t * 1000)))
         offset += len(f)
     with open(dst, "wb") as fh:
-        fh.write(header)
+        fh.write(MAGIC + struct.pack("<IIIfQQI", w, h, n, fps, offset, len(audio), 0))
         fh.write(table)
         for f in frames:
             fh.write(f)
-    if has_audio(src):
-        subprocess.run(
-            ["ffmpeg", "-v", "error", "-y", "-i", src, "-vn", "-c:a", "libvorbis", "-q:a", "4", os.path.splitext(dst)[0] + ".ogg"],
-            check=True,
-        )
+        fh.write(audio)
     return w, h, n, fps
 
 

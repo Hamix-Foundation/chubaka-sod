@@ -6,7 +6,7 @@
 
 - Rust 1.85+, JDK 17, Android SDK Command-line Tools і Gradle 8.9+ (або Gradle wrapper)
 - CPython для Android із `lib/libpython3.X.so` та NumPy, зібраними під `arm64-v8a`; обидва мають бути з одного префікса або NumPy треба передати через `ANDROID_SITE_PACKAGES`
-- На Android звук виводиться через системний `SoundPool` за допомогою pyjnius; на desktop використовується `miniaudio`
+- На Android короткі ефекти відтворюються через `SoundPool`, довгі треки й аудіо відео — через `MediaPlayer`; на desktop використовується `miniaudio`
 
 Збірка шукає Android SDK у звичних каталогах, `local.properties` та `~/.buildozer/android/platform/android-sdk`. NDK шукається в SDK і в сусідньому каталозі Buildozer; встановлена версія передається Gradle. Якщо NDK відсутній, скрипт встановлює r27.2; також перевіряє Android API 35, Build Tools і platform-tools, додає Rust target та встановлює `cargo-ndk`, якщо його немає. Якщо Android CPython і NumPy не задані через змінні оточення, перший запуск створює їх через `python-for-android` у `.android/`; артефакти зберігаються для наступних збірок.
 
