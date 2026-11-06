@@ -34,7 +34,12 @@ class VideoPlayer:
             legacy = os.path.splitext(path)[0] + ".ogg"
             return legacy if os.path.isfile(legacy) else ""
         digest = hashlib.sha256(embedded).hexdigest()[:24]
-        target = os.path.join(tempfile.gettempdir(), "lysyk-video-" + digest + ".ogg")
+        if os.environ.get("LYSYK_ROOT"):
+            cache_dir = os.path.join(os.environ["LYSYK_ROOT"], "cache", "video")
+        else:
+            cache_dir = tempfile.gettempdir()
+        os.makedirs(cache_dir, exist_ok=True)
+        target = os.path.join(cache_dir, "lysyk-video-" + digest + ".ogg")
         if not os.path.isfile(target):
             temporary = target + ".tmp"
             with open(temporary, "wb") as output:

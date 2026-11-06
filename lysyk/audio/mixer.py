@@ -320,12 +320,13 @@ class AndroidVoice:
             if self.gain == 0.0 and self.target == 0.0:
                 self.finished = True
         gain = max(0.0, min(1.0, self.volume * bus_gain * self.gain))
-        if self.stream and (self.last_gain is None or abs(gain - self.last_gain) >= 0.005):
-            try:
-                pool.set_volume(self.stream, gain, gain)
-                self.last_gain = gain
-            except Exception:
-                self.finished = True
+        if self.stream:
+            if self.last_gain is None or abs(gain - self.last_gain) >= 0.005:
+                try:
+                    pool.set_volume(self.stream, gain, gain)
+                    self.last_gain = gain
+                except Exception:
+                    self.finished = True
         elif self.sound.native_id is not None:
             self.stream = pool.play(self.sound.native_id, gain, gain, -1 if self.loop else 0)
 
