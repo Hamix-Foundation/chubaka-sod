@@ -1,6 +1,6 @@
 import platform
-import json
 import sys
+import json
 from pathlib import Path
 
 from lysyk.engine import keys as K
@@ -68,10 +68,13 @@ class SettingsPanel:
             self.row_glow[i] += (target - self.row_glow[i]) * min(1.0, step * 2.0)
 
     def choices(self, key):
-        return {
+        choices = {
             "language": ["uk", "en"], "quality": ["auto", "low", "medium", "high"],
             "fps_limit": [0, 30, 45, 60], "vsync": [False, True], "graphics_api": ["auto", "vulkan", "gl"],
-        }[key]
+        }
+        if sys.platform == "win32":
+            choices["graphics_api"].append("dx12")
+        return choices[key]
 
     def value(self, key):
         value = getattr(self.game.settings, key)
@@ -84,7 +87,7 @@ class SettingsPanel:
         if key == "vsync":
             return self.t("on" if value else "off")
         if key == "graphics_api":
-            return self.t({"auto": "automatic", "vulkan": "vulkan", "gl": "gl"}.get(value, "automatic"))
+            return self.t({"auto": "automatic", "vulkan": "vulkan", "gl": "gl", "dx12": "DirectX 12"}.get(value, "automatic"))
         if key == "show_fps":
             return self.t("fps_on" if value else "fps_off")
         return f"{int(value * 100)}%"
@@ -261,8 +264,11 @@ class SettingsPanel:
             self.game.quality = resolve(settings.quality, self.game.is_mobile)
             self.game.profile = dict(PROFILES[self.game.quality])
             self.game.fx = FilmFx(self.game.canvas, grain=self.game.profile["grain"] > 0.0, scanlines=self.game.profile["scanlines"] > 0.0)
-            self.game.set_fps_limit(settings.fps_limit or (self.game.profile["fps"] if self.game.is_mobile else 0))
+            self.game.set_msaa(settings.msaa and self.game.profile["msaa"])
+            from lysyk.profile import frame_limit
+            self.game.set_fps_limit(frame_limit(settings.quality, self.game.is_mobile, settings.fps_limit))
         elif key == "fps_limit":
-            self.game.set_fps_limit(settings.fps_limit or (self.game.profile["fps"] if self.game.is_mobile else 0))
+            from lysyk.profile import frame_limit
+            self.game.set_fps_limit(frame_limit(settings.quality, self.game.is_mobile, settings.fps_limit))
         elif key == "language":
             self.game.scenes.current.refresh_labels()

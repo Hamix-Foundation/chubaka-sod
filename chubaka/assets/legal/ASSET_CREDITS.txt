@@ -1,0 +1,10 @@
+GNU General Public License, version 3
+The complete license text is provided in COPYING. The official license text is published by the GNU Project at https://www.gnu.org/licenses/gpl-3.0.txt.
+
+Richard Stallman at LibrePlanet 2019
+Photograph by Ruben Rodriguez. Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/.
+Source: https://commons.wikimedia.org/wiki/File:Richard_Stallman_at_LibrePlanet_2019.jpg
+The photograph is included without modification.
+
+Free Software Foundation logo
+The image file was supplied for this project at the user's request. It is used to identify the Free Software Foundation and does not imply endorsement of this game.

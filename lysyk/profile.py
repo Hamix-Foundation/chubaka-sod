@@ -8,4 +8,12 @@ PROFILES = {
 def resolve(name, is_mobile):
     if name in PROFILES:
         return name
-    return "low" if is_mobile else "high"
+    return "low" if is_mobile else "medium"
+
+
+def frame_limit(name, is_mobile, configured=0):
+    if configured > 0:
+        return configured
+    if is_mobile:
+        return PROFILES[resolve(name, True)]["fps"]
+    return 60 if name == "auto" else 0

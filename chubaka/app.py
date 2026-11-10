@@ -1,17 +1,21 @@
 import argparse
 import os
+import sys
 
 from chubaka import asset
 from chubaka.scenes.classroom import ClassroomScene
 from chubaka.scenes.cutscene import CutsceneScene
+from chubaka.scenes.jumpscare import JumpscareScene
+from chubaka.scenes.intro import IntroScene
 from chubaka.scenes.night import NightScene
 from chubaka.scenes.title import TitleScene
+from chubaka.pause_menu import PauseMenu
 from chubaka.state import Progress
 from lysyk.config import Settings
 from lysyk.engine import keys as K
 from lysyk.engine.fx import FilmFx
 from lysyk.engine.game import Game
-from lysyk.profile import PROFILES, resolve
+from lysyk.profile import PROFILES, frame_limit, resolve
 
 
 def android_device():
@@ -38,22 +42,120 @@ class ChubakaGame(Game):
         self.audio.master = self.settings.master
         self.audio.buses["music"] = self.settings.music
         self.audio.buses["sfx"] = self.settings.sfx
-        self.set_fps_limit(self.settings.fps_limit or (self.profile["fps"] if self.is_mobile else 0))
+        self.set_fps_limit(frame_limit(self.settings.quality, self.is_mobile, self.settings.fps_limit))
         if self.settings.fullscreen:
             self.set_fullscreen(True)
         self.progress = Progress()
         self.fx = FilmFx(self.canvas, grain=self.profile["grain"] > 0.0, scanlines=self.profile["scanlines"] > 0.0)
+        self.paused = False
+        self.pause_menu = PauseMenu(self)
         self.scenes.register("title", TitleScene(self))
+        self.scenes.register("intro", IntroScene(self))
         self.scenes.register("cutscene", CutsceneScene(self))
         self.scenes.register("night", NightScene(self))
         self.scenes.register("classroom", ClassroomScene(self))
-        self.scenes.switch("title")
+        self.scenes.register("jumpscare", JumpscareScene(self))
+        self.scenes.switch("intro")
+
+    def on_update(self, dt):
+        if self.paused:
+            self.pause_menu.update(min(dt, 0.1))
+            return
+        super().on_update(dt)
+
+    def on_draw(self):
+        super().on_draw()
+        if self.paused:
+            self.pause_menu.draw(self.sc)
+        elif self.pause_hud_visible():
+            self.pause_menu.draw_hud(self.sc)
+
+    def pause_hud_visible(self):
+        return self.scenes.current_name == "classroom" and getattr(self.scenes.current, "state", None) != "laptop"
+
+    def pause_game(self):
+        if self.scenes.current_name not in ("classroom", "cutscene", "night", "jumpscare") or self.paused:
+            return
+        self.paused = True
+        self.pause_menu.anim = 0.0
+        self.pause_menu.resume_button.down = False
+        self.pause_menu.menu_button.down = False
+        self.audio.pause()
+
+    def resume_game(self):
+        if not self.paused:
+            return
+        self.paused = False
+        self.audio.resume()
+
+    def return_to_title(self):
+        if not self.paused:
+            return
+        self.paused = False
+        self.audio.resume()
+        self.scenes.goto("title", fade=0.5)
 
     def on_key_press(self, key, mods):
-        if key == K.ESCAPE and self.scenes.current_name in ("classroom", "cutscene", "night"):
-            self.scenes.goto("title", fade=0.5)
+        if self.paused:
+            if key == K.ESCAPE:
+                self.resume_game()
+            return
+        if key == K.ESCAPE and self.scenes.current_name in ("classroom", "cutscene", "night", "jumpscare"):
+            self.pause_game()
             return
         super().on_key_press(key, mods)
+
+    def on_mouse_motion(self, x, y):
+        sx, sy = self.stage.to_stage(x, y)
+        if self.paused:
+            self.pause_menu.motion(sx, sy)
+            return
+        super().on_mouse_motion(x, y)
+
+    def on_mouse_press(self, x, y, button):
+        sx, sy = self.stage.to_stage(x, y)
+        if self.paused:
+            if button == 0:
+                self.pause_menu.press(sx, sy)
+            return
+        if button == 0 and self.pause_hud_visible() and 24 <= sx <= 142 and 108 <= sy <= 166:
+            self.pause_game()
+            return
+        super().on_mouse_press(x, y, button)
+
+    def on_mouse_release(self, x, y, button):
+        sx, sy = self.stage.to_stage(x, y)
+        if self.paused:
+            if button == 0:
+                self.pause_menu.release(sx, sy)
+            return
+        super().on_mouse_release(x, y, button)
+
+    def on_touch(self, touch_id, phase, x, y):
+        sx, sy = self.stage.to_stage(x, y)
+        if self.paused:
+            if phase == "down":
+                self.pause_menu.press(sx, sy)
+            elif phase == "up":
+                self.pause_menu.release(sx, sy)
+            return
+        if phase == "down" and self.pause_hud_visible() and 24 <= sx <= 142 and 108 <= sy <= 166:
+            self.pause_game()
+            return
+        super().on_touch(touch_id, phase, x, y)
+
+    def on_scroll(self, dx, dy):
+        if self.paused:
+            return
+        current = self.scenes.current
+        if self.scenes.current_name == "title" and current is not None and current.license_open:
+            current.license_panel.scroll_wheel(dy)
+
+    def on_resume(self):
+        if self.paused:
+            self.scenes.route("resume")
+            return
+        super().on_resume()
 
     def on_close(self):
         self.settings.fullscreen = self.fullscreen
@@ -63,7 +165,7 @@ class ChubakaGame(Game):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Chubaka: The Smell Of Death on Lysyk Engine")
-    ap.add_argument("--api", default=None, choices=["auto", "vulkan", "gl"])
+    ap.add_argument("--api", default=None, choices=["auto", "vulkan", "gl", "dx12"] if sys.platform == "win32" else ["auto", "vulkan", "gl"])
     ap.add_argument("--quality", default=None, choices=sorted(PROFILES))
     ap.add_argument("--no-audio", action="store_true")
     ap.add_argument("--fullscreen", action="store_true")

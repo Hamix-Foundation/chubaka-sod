@@ -13,6 +13,7 @@ use crate::canvas::Texture;
 
 const MAGIC_V1: &[u8; 4] = b"LYV1";
 const MAGIC_V2: &[u8; 4] = b"LYV2";
+const MAGIC_V3: &[u8; 4] = b"LYV3";
 const HEADER_V1: usize = 24;
 const HEADER_V2: usize = 40;
 const ENTRY: usize = 16;
@@ -109,14 +110,23 @@ impl VideoStream {
         file.read_exact(&mut head)
             .map_err(|e| PyIOError::new_err(format!("{path}: {e}")))?;
         let magic = &head[0..4];
-        let (header_size, audio) = if magic == MAGIC_V1 {
-            (HEADER_V1, None)
+        let (header_size, audio, time_scale) = if magic == MAGIC_V1 {
+            (HEADER_V1, None, 1000.0)
         } else if magic == MAGIC_V2 {
             let audio_offset = u64_at(&head, 20);
             let audio_size = u64_at(&head, 28);
             (
                 HEADER_V2,
                 (audio_size > 0).then_some((audio_offset, audio_size)),
+                1000.0,
+            )
+        } else if magic == MAGIC_V3 {
+            let audio_offset = u64_at(&head, 20);
+            let audio_size = u64_at(&head, 28);
+            (
+                HEADER_V2,
+                (audio_size > 0).then_some((audio_offset, audio_size)),
+                1_000_000.0,
             )
         } else {
             return Err(PyValueError::new_err(format!(
@@ -145,7 +155,7 @@ impl VideoStream {
             index.push(Entry {
                 offset: u64_at(&table, o),
                 size: u32_at(&table, o + 8),
-                pts: u32_at(&table, o + 12) as f64 / 1000.0,
+                pts: u32_at(&table, o + 12) as f64 / time_scale,
             });
         }
         let tail = if fps > 0.0 { 1.0 / fps as f64 } else { 0.04 };
@@ -207,7 +217,7 @@ impl VideoStream {
     }
 
     fn frame_index(&self, t: f64) -> usize {
-        let n = self.index.partition_point(|e| e.pts <= t);
+        let n = self.index.partition_point(|e| e.pts <= t + 0.000001);
         n.saturating_sub(1)
     }
 
