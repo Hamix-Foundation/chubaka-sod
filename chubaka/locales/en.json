@@ -55,15 +55,5 @@
   "menu": "MENU",
   "night_complete": "6 AM — NIGHT COMPLETE",
   "caught_by": "Caught by",
-  "north_short": "N",
-  "no_signal": "NO SIGNAL",
-  "audio_only": "AUDIO ONLY",
-  "compass_n": "N",
-  "compass_ne": "NE",
-  "compass_e": "E",
-  "compass_se": "SE",
-  "compass_s": "S",
-  "compass_sw": "SW",
-  "compass_w": "W",
-  "compass_nw": "NW"
+  "north_short": "N"
 }

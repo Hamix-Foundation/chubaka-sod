@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 
-from chubaka.floorplan import DOOR_H, GROUND, HEIGHT, WINDOW_DATA, plan
+from chubaka.floorplan import DOOR_H, GROUND, GUARD_CLIP, HEIGHT, WINDOW_DATA, plan, rect_difference
 from chubaka.geometry import Batch
 from lysyk.engine.mesh import Mesh
 
@@ -35,8 +35,9 @@ RAIL_H = 0.1
 RAIL_OUT = 0.05
 SILL = 0.98
 HEAD = 2.7
-GUARD_SILL = 1.0
-GUARD_HEAD = 2.95
+GUARD_SILL = 0.92
+GUARD_HEAD = 2.97
+GUARD_LINTEL = 2.45
 CORRIDOR_FLOORS = {
     "corr_top_w": (100, 92, 88),
     "corr_mid": (96, 92, 92),
@@ -241,6 +242,11 @@ def rail_rect(kind, rect, a0, a1):
     return (e0 - RAIL_OUT, e1 + RAIL_OUT, n0, n1)
 
 
+def rail_boxes(s, kind, rect, a0, a1):
+    for piece in rect_difference(rail_rect(kind, rect, a0, a1), GUARD_CLIP):
+        box_rect(s, piece, BAND - RAIL_H / 2, BAND + RAIL_H / 2, RAIL_COLOR)
+
+
 def window_specs(rect, kind):
     e0, e1, n0, n1 = rect
     lo, hi = (n0, n1) if kind == "h" else (e0, e1)
@@ -312,7 +318,7 @@ def build_walls(fp, s, props, glass):
             w0, w1 = c - width / 2, c + width / 2
             if w0 - cursor > 1e-6:
                 wall_box(s, seg_rect(kind, rect, cursor, w0), low, high)
-                box_rect(s, rail_rect(kind, rect, cursor, w0), BAND - RAIL_H / 2, BAND + RAIL_H / 2, RAIL_COLOR)
+                rail_boxes(s, kind, rect, cursor, w0)
             sill, head = (SILL, HEAD) if furnished else (GUARD_SILL, GUARD_HEAD)
             wall_box(s, seg_rect(kind, rect, w0, w1), low, high, GROUND, sill)
             wall_box(s, seg_rect(kind, rect, w0, w1), low, high, head, HEIGHT + 0.12)
@@ -320,7 +326,7 @@ def build_walls(fp, s, props, glass):
             cursor = w1
         if a1 - cursor > 1e-6:
             wall_box(s, seg_rect(kind, rect, cursor, a1), low, high)
-            box_rect(s, rail_rect(kind, rect, cursor, a1), BAND - RAIL_H / 2, BAND + RAIL_H / 2, RAIL_COLOR)
+            rail_boxes(s, kind, rect, cursor, a1)
 
 
 def build_columns(fp, s):
@@ -355,7 +361,9 @@ def build(models=None, seed=11):
         if cut.kind != "guard":
             box_rect(s, cut.rect, -0.12, 0.0, FLOORS["corridor"])
             box_rect(s, cut.rect, HEIGHT, HEIGHT + 0.12, CEILING)
-        if cut.kind in ("door", "guard"):
+        if cut.kind == "guard":
+            box_rect(s, (x0, x1, z0, min(z1, GUARD_CLIP[2])), GUARD_LINTEL, HEIGHT + 0.12, WALL_HIGH)
+        elif cut.kind == "door":
             box_rect(s, cut.rect, DOOR_H, HEIGHT + 0.12, WALL_HIGH)
         if cut.kind != "door":
             continue

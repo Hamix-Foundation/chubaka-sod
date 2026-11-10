@@ -99,12 +99,10 @@ def test_audio_camera_hears_an_echo_in_its_room():
     manager.reset(1, specs=[EchoSpec(id="t", name="t", start=camera.zone, ai=0.0)])
     v = view(camera=camera, state="laptop")
     heard = []
-    peak = 0.0
     for _ in range(60 * 8):
         manager.update(1 / 60, v)
         heard += [name for name, volume in manager.sounds]
-        peak = max(peak, manager.audio_level)
-    assert "creak" in heard and peak > 0.3
+    assert "creak" in heard and "door_open" in heard
 
 
 def test_other_cameras_hear_nothing():
@@ -117,4 +115,3 @@ def test_other_cameras_hear_nothing():
     for _ in range(60 * 8):
         manager.update(1 / 60, v)
         assert not manager.sounds
-    assert manager.audio_level == 0.0

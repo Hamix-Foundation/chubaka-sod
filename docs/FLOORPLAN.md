@@ -6,7 +6,7 @@ Coordinates in the data tables use plan directions: `e` grows to the east (right
 
 The inner courtyards are empty pits that only show through windows. The assembly hall with its vestibule and all staircases are not part of the game map.
 
-The central hall (`lobby`) lies between the two courtyards, directly in front of the guard door. It has four square columns (`COLUMN_DATA`) and narrows into the pink central passage (`channel`) between the two upper toilets.
+The central hall (`lobby`) lies between the two courtyards, directly in front of the guard door. It has four square columns (`COLUMN_DATA`) and narrows into the pink central passage (`channel`) between the two upper toilets. The passage is a plain 3 m corridor: only the toilets have doors on it, and rooms 17 and 18 beside it are solid.
 
 ## Editing the map
 
@@ -27,8 +27,8 @@ Walls are added around every region automatically. `tests/test_floorplan.py` che
 
 ## Cameras
 
-Cameras are listed in `CAMERA_DATA`. Add a row, and the laptop gets a new marker and a place in the list. The map panel shows the view cone of the selected camera, clipped by walls and columns, with an arrow along its axis. Every video camera has a small pointer on its marker, and the top of the screen has a compass strip that shows the heading of the camera.
+Cameras are listed in `CAMERA_DATA`. Add a row, and the laptop gets a new marker and a place in the list. The map panel shows the view cone of the selected camera, clipped by walls and columns, with an arrow along its axis. Every video camera has a small pointer on its marker.
 
-A camera in `AUDIO_CAMERA_DATA` has no picture: the screen shows NO SIGNAL and a level meter, the map highlights the room it listens to, and the sounds of Echoes inside that room (steps, creaks, the door) are played. It never sees anything, so abilities such as `CameraFreeze` ignore it.
+A camera in `AUDIO_CAMERA_DATA` has no picture: the screen shows only noise, the map highlights the room it listens to, and the sounds of Echoes inside that room (steps, creaks, the door) are played. It never sees anything, so abilities such as `CameraFreeze` ignore it.
 
 Every numbered room gets a plate with its number above the door on the corridor side, and every corridor has its own floor tint, so cameras are easy to tell apart. Keys 1 to 9 select the first nine, A and D and the arrow buttons on the panel cycle through all.

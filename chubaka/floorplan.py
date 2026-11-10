@@ -10,6 +10,7 @@ GROUND = -1.8
 EYE = 1.5
 GUARD_INTERIOR = (-4.8, 4.8, -3.4, 3.4)
 GUARD_RECESS = 0.02
+GUARD_CLIP = (GUARD_INTERIOR[0] - GUARD_RECESS, GUARD_INTERIOR[1] + GUARD_RECESS, GUARD_INTERIOR[2] - GUARD_RECESS, GUARD_INTERIOR[3] + GUARD_RECESS)
 COLUMN_SIZE = 1.1
 
 
@@ -112,7 +113,7 @@ REGION_DATA = (
     ("corr_west", "corridor", -24.3, -20.7, -39.9, -7.9, (), False, "Західний коридор"),
     ("corr_east", "corridor", 25.35, 28.95, -39.9, -7.9, (), False, "Східний коридор"),
     ("corr_bottom", "corridor", -20.7, 25.35, -29.55, -25.95, ("e0", "e1"), False, "Нижній коридор"),
-    ("channel", "corridor", -3.2, 1.8, -25.5, -13.55, ("n1",), False, "Центральний прохід"),
+    ("channel", "corridor", -2.2, 0.8, -25.5, -13.55, ("n1",), False, "Центральний прохід"),
     ("room_05", "room", -32.2, -24.75, -13.8, -7.9, (), False, "Кімната 05"),
     ("room_04", "room", -32.2, -24.75, -20.75, -14.25, (), False, "Кімната 04"),
     ("room_03", "room", -32.2, -24.75, -25.5, -21.2, (), False, "Кімната 03"),
@@ -121,11 +122,9 @@ REGION_DATA = (
     ("room_13", "room", 29.4, 36.85, -19.25, -17.05, (), False, "Кімната 13"),
     ("room_14", "room", 29.4, 36.85, -25.5, -19.7, (), False, "Кімната 14"),
     ("room_15", "room", 29.4, 36.85, -35.05, -25.95, (), False, "Кімната 15"),
-    ("toilet_w", "toilet", -10.1, -3.65, -19.0, -14.0, (), False, "Туалет"),
-    ("toilet_e", "toilet", 2.25, 8.7, -19.0, -14.0, (), False, "Туалет"),
-    ("toilet_w2", "toilet", -10.1, -3.65, -25.5, -20.3, (), False, "Туалет"),
-    ("room_17", "room", 2.25, 6.3, -25.5, -20.3, (), False, "Кімната 17"),
-    ("room_18", "room", 6.75, 10.0, -25.5, -20.3, (), False, "Кімната 18"),
+    ("toilet_w", "toilet", -10.1, -2.65, -19.0, -14.0, (), False, "Туалет"),
+    ("toilet_e", "toilet", 1.25, 8.7, -19.0, -14.0, (), False, "Туалет"),
+    ("toilet_w2", "toilet", -10.1, -2.65, -25.5, -20.3, (), False, "Туалет"),
     ("archive", "archive", -14.9, -10.55, -25.5, -20.3, (), False, "Архів"),
     ("room_01", "room", -20.25, -11.05, -36.3, -30.0, (), False, "Кімната 01"),
     ("room_16", "room", 12.25, 24.9, -36.3, -30.0, (), False, "Кімната 16"),
@@ -136,8 +135,8 @@ GAP_DATA = (
     (25.35, 28.95, -7.9, -7.45),
     (-20.7 - T, -20.7, -29.55, -25.95),
     (25.35, 25.35 + T, -29.55, -25.95),
-    (-3.2, 1.8, -14.0, -13.55),
-    (-3.2, 1.8, -25.95, -25.5),
+    (-2.2, 0.8, -14.0, -13.55),
+    (-2.2, 0.8, -25.95, -25.5),
     (-20.7, -20.25, -29.55, -25.95),
     (24.9, 25.35, -29.55, -25.95),
 )
@@ -159,8 +158,6 @@ LINK_DATA = (
     ("toilet_w", "channel", -16.5),
     ("toilet_e", "channel", -16.5),
     ("toilet_w2", "channel", -22.9),
-    ("room_17", "channel", -22.9),
-    ("room_17", "room_18", -22.9),
     ("toilet_w2", "archive", -22.9),
     ("room_01", "corr_bottom", -15.6),
     ("room_16", "corr_bottom", 18.5),
@@ -170,7 +167,7 @@ EXIT_DATA = (
     ("corr_west", "n0", -22.5),
 )
 
-GUARD_DOOR_DATA = (0.8, 2.2, -3.85, -3.4)
+GUARD_DOOR_DATA = (0.65, 2.35, -3.85, -3.4)
 
 SOLID_DATA = (
     ("guard_front", (-4.8, 4.8, -3.85, -3.4)),
@@ -186,7 +183,7 @@ WINDOW_DATA = (
     ("v", 8.7, 9.15, (-9.2, -11.8), 1.4, True),
     ("v", -20.7, -20.25, (-10.8, -14.4, -18.0, -21.6), 1.4, True),
     ("v", 24.9, 25.35, (-10.8, -14.4, -18.0, -21.6), 1.4, True),
-    ("v", -5.25, -4.8, (0.2,), 3.4, False),
+    ("v", -5.25, -4.8, (0.2,), 3.7, False),
 )
 
 NODE_DATA = (
@@ -240,11 +237,9 @@ NODE_DATA = (
     ("room_13", 33.1, -18.15, "Кімната 13"),
     ("room_14", 33.1, -22.6, "Кімната 14"),
     ("room_15", 33.1, -29.5, "Кімната 15"),
-    ("toilet_w", -6.8, -16.5, "Туалет"),
-    ("toilet_e", 5.5, -16.5, "Туалет"),
-    ("toilet_w2", -6.9, -22.9, "Туалет"),
-    ("room_17", 4.3, -22.9, "Кімната 17"),
-    ("room_18", 8.4, -22.9, "Кімната 18"),
+    ("toilet_w", -6.4, -16.5, "Туалет"),
+    ("toilet_e", 4.9, -16.5, "Туалет"),
+    ("toilet_w2", -6.4, -22.9, "Туалет"),
     ("archive", -12.7, -22.9, "Архів"),
     ("room_01", -15.6, -33.2, "Кімната 01"),
     ("room_16", 18.5, -33.2, "Кімната 16"),
@@ -263,8 +258,7 @@ EDGE_DATA = (
     ("room_06", "tw_far"), ("room_07", "tw_mid"), ("room_09", "te_mid"), ("room_10", "te_far"), ("room_11", "te_end"),
     ("room_05", "w_05"), ("room_04", "w_04"), ("room_03", "w_03"), ("room_02", "w_02"),
     ("room_12", "e_12"), ("room_13", "e_13"), ("room_14", "e_14"), ("room_15", "e_15"),
-    ("toilet_w", "ch_mid"), ("toilet_e", "ch_mid"), ("toilet_w2", "ch_s"), ("room_17", "ch_s"),
-    ("room_17", "room_18"), ("toilet_w2", "archive"),
+    ("toilet_w", "ch_mid"), ("toilet_e", "ch_mid"), ("toilet_w2", "ch_s"), ("toilet_w2", "archive"),
     ("room_01", "b_1"), ("room_16", "b_16"),
 )
 
@@ -282,7 +276,7 @@ CAMERA_DATA = (
 )
 
 AUDIO_CAMERA_DATA = (
-    ("6", "Туалет", 5.5, -16.5, 0.0, "toilet_e"),
+    ("6", "Туалет", 4.9, -16.5, 0.0, "toilet_e"),
 )
 
 SPOT_OFFSETS = ((0.0, 0.0), (0.7, 0.45), (-0.7, 0.45), (0.0, -0.8))
@@ -386,12 +380,9 @@ class FloorPlan:
         self.node_region = {nid: self.region_at(n.e, n.n) for nid, n in self.nodes.items()}
 
     def visible_slabs(self):
-        c = GUARD_RECESS
-        e0, e1, n0, n1 = GUARD_INTERIOR
-        clip = (e0 - c, e1 + c, n0 - c, n1 + c)
         out = []
         for rect, owner in self.slabs:
-            for piece in rect_difference(rect, clip):
+            for piece in rect_difference(rect, GUARD_CLIP):
                 out.append((piece, owner))
         return out
 

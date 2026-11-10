@@ -1,4 +1,5 @@
 import math
+import random
 
 import numpy as np
 
@@ -10,8 +11,6 @@ PANEL = (760, 290, 490, 340)
 HEADER_H = 44
 MAP_BOX = (768, 338, 474, 284)
 MAP_PAD = 10
-TAPE = (470, 28, 340, 44)
-TAPE_SPAN = 64.0
 MARKER_R = 10.0
 ACTIVE_R = 13.0
 HIT_R = 16.0
@@ -30,8 +29,6 @@ CONE_COLOR = (178, 226, 36)
 CONE_BRIGHT = (236, 255, 132)
 AUDIO_COLOR = (255, 176, 64)
 POINTER_COLOR = (206, 206, 206)
-METER_BARS = 24
-COMPASS = {0: "n", 45: "ne", 90: "e", 135: "se", 180: "s", 225: "sw", 270: "w", 315: "nw"}
 
 
 class CameraMonitor:
@@ -42,7 +39,6 @@ class CameraMonitor:
         self.on_switch = on_switch
         self.index = 0
         self.time = 0.0
-        self.audio = 0.0
         px, py, pw, ph = PANEL
         self.close_button = Button("", 326, 628, 420, 36, self.close, 22)
         self.close_button.arrow = False
@@ -311,49 +307,25 @@ class CameraMonitor:
             sc.rect(mx - r, my - r, r * 2, r * 2, CAM_ACTIVE if active else CAM_FILL, radius)
             sc.text(cam.label, mx, my, DARK if active else WHITE, 13 if active else 11, "center", "center", True)
 
-    def draw_tape(self, sc, cam):
-        x, y, w, h = TAPE
-        sc.rect(x, y, w, h, (0, 0, 0, 130), 4)
-        cx = x + w / 2
-        k = (w / 2 - 10) / TAPE_SPAN
-        heading = cam.yaw
-        first = int(math.floor((heading - TAPE_SPAN) / 15.0)) * 15
-        for a in range(first, int(heading + TAPE_SPAN) + 16, 15):
-            d = a - heading
-            if abs(d) > TAPE_SPAN:
-                continue
-            px = cx + d * k
-            alpha = int(255 * (1.0 - (abs(d) / TAPE_SPAN) ** 2))
-            cardinal = a % 90 == 0
-            height = 16 if cardinal else (11 if a % 45 == 0 else 6)
-            sc.rect(px - 1, y + h - height - 4, 2, height, (255, 255, 255, alpha))
-            key = COMPASS.get(a % 360)
-            if key:
-                color = (CAM_ACTIVE[0], CAM_ACTIVE[1], CAM_ACTIVE[2], alpha) if key == "n" else (255, 255, 255, alpha)
-                sc.text(translate(self.language, "compass_" + key), px, y + 4, color, 20 if cardinal else 13, "center", "top", True)
-        sc.text("▲", cx, y + h + 2, CAM_ACTIVE, 14, "center", "top", True)
-        sc.text(f"{int(round(heading)) % 360:03d}°", cx + 14, y + h + 2, WHITE, 14, "left", "top", True, True)
-
-    def draw_no_signal(self, sc, w, h):
-        cx = (24 + PANEL[0]) / 2
-        sc.text(translate(self.language, "no_signal"), cx, 250, WHITE, 60, "center", "center", True, True)
-        sc.text("♪  " + translate(self.language, "audio_only"), cx, 318, AUDIO_COLOR + (255,), 28, "center", "center", True, True)
-        gap, bar_w = 5, 12
-        total = METER_BARS * (bar_w + gap) - gap
-        x0 = cx - total / 2
-        level = max(0.0, min(1.0, self.audio))
-        for i in range(METER_BARS):
-            wave = 0.5 + 0.5 * math.sin(self.time * 9.0 + i * 1.7) * math.sin(self.time * 3.1 + i * 0.6)
-            height = 4.0 + level * 76.0 * (0.25 + 0.75 * abs(wave))
-            sc.rect(x0 + i * (bar_w + gap), 400 - height / 2, bar_w, height, AUDIO_COLOR + (230,) if level > 0.05 else (90, 90, 90, 200))
+    def draw_static(self, sc, w, h):
+        rng = random.Random(int(self.time * 24.0))
+        sc.rect(0, 0, w, h, (78, 80, 80, 255))
+        for _ in range(420):
+            x, y = rng.uniform(0, w), rng.uniform(0, h)
+            g = rng.randint(20, 235)
+            sc.rect(x, y, rng.uniform(4, 40), rng.uniform(2, 7), (g, g, g, rng.randint(90, 230)))
+        for _ in range(6):
+            g = rng.randint(150, 255)
+            sc.rect(0, rng.uniform(0, h), w, rng.uniform(2, 10), (g, g, g, rng.randint(40, 110)))
 
     def draw(self, sc, clock, night, power=100):
         st = sc.stage
         w, h = st.width, st.height
         cam = self.camera
-        sc.rect(0, 0, w, h, (12, 12, 12, 38))
+        if not cam.audio_only:
+            sc.rect(0, 0, w, h, (12, 12, 12, 38))
         if cam.audio_only:
-            self.draw_no_signal(sc, w, h)
+            self.draw_static(sc, w, h)
         sc.rect(22, 20, w - 44, 2, WHITE)
         sc.rect(22, h - 58, w - 44, 2, WHITE)
         sc.rect(22, 20, 2, h - 76, WHITE)
@@ -365,8 +337,6 @@ class CameraMonitor:
         sc.text(clock, w - 52, 38, WHITE, 48, "right", "top", True, True)
         sc.text(f"{translate(self.language, 'night')} {night}", w - 52, 92, WHITE, 26, "right", "top", False, True)
         sc.text(f"{translate(self.language, 'power')}: {power}%", 52, h - 112, WHITE, 28, "left", "top", True, True)
-        if not cam.audio_only:
-            self.draw_tape(sc, cam)
         sc.rect(0, 0, w, 10, (6, 6, 8, 255))
         sc.rect(0, 0, 10, h, (6, 6, 8, 255))
         sc.rect(w - 10, 0, 10, h, (6, 6, 8, 255))

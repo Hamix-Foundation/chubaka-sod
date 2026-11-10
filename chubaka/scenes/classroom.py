@@ -115,7 +115,7 @@ class ClassroomScene(Scene):
         self.last_creak = -1
 
     def language(self):
-        return getattr(getattr(self.game, "settings", None), "language", "uk")
+        return getattr(getattr(self.game, "settings", None), "language", "en")
 
     def make_build(self):
         game = self.game
@@ -219,8 +219,9 @@ class ClassroomScene(Scene):
         gc.freeze()
 
     def enter(self, night=1, **kwargs):
-        self.light_button.label = translate(self.game.settings.language, "light")
-        self.back_button.label = translate(self.game.settings.language, "back")
+        lang = self.language()
+        self.light_button.label = translate(lang, "light")
+        self.back_button.label = translate(lang, "back")
         if not self.built:
             self.build()
         self.night = night
@@ -423,7 +424,6 @@ class ClassroomScene(Scene):
         v.door_open = self.door.openness
         v.door_held = self.door.held
         self.echoes.update(dt, v)
-        self.monitor.audio = self.echoes.audio_level
         pressing = any(e.at_goal for e in self.echoes.echoes)
         self.door.push_speed = DOOR_PUSH_ATTACK if pressing else DOOR_PUSH
         if self.echoes.drain > 0.0:
@@ -616,17 +616,18 @@ class ClassroomScene(Scene):
 
     def hint_text(self):
         touch = self.game.is_mobile
+        lang = self.language()
         if self.hint_stage == 1:
-            return translate(self.game.settings.language, "hint_tap" if touch else "hint_click")
+            return translate(lang, "hint_tap" if touch else "hint_click")
         if self.hint_stage == 3:
-            return translate(self.game.settings.language, "hint_hold_touch" if touch else "hint_hold")
+            return translate(lang, "hint_hold_touch" if touch else "hint_hold")
         return None
 
     def draw_feed(self, sc):
         cam = self.monitor.camera
         if cam.audio_only:
-            self.game.clear((6, 8, 8))
-            self.game.fx.draw(sc, grain=0.35, scanlines=0.25, vignette=0.7, glitch_bars=True)
+            self.game.clear((70, 72, 72))
+            self.game.fx.draw(sc, grain=0.6, scanlines=0.3, vignette=0.5, glitch_bars=True)
         else:
             view = self.camera
             view.position = cam.position

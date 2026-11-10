@@ -55,15 +55,5 @@
   "menu": "МЕНЮ",
   "night_complete": "6 AM — НІЧ ПРОЙДЕНО",
   "caught_by": "Вас спіймало",
-  "north_short": "ПН",
-  "no_signal": "НЕМАЄ СИГНАЛУ",
-  "audio_only": "ТІЛЬКИ ЗВУК",
-  "compass_n": "ПН",
-  "compass_ne": "ПН-СХ",
-  "compass_e": "СХ",
-  "compass_se": "ПД-СХ",
-  "compass_s": "ПД",
-  "compass_sw": "ПД-ЗХ",
-  "compass_w": "ЗХ",
-  "compass_nw": "ПН-ЗХ"
+  "north_short": "ПН"
 }

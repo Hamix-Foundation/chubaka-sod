@@ -11,7 +11,6 @@ from lysyk.engine.sprite import Billboard, BillboardLayer, Sprite, load_rgba
 
 LISTEN_STEP = 0.55
 LISTEN_IDLE = (2.2, 4.8)
-LEVEL_DECAY = 2.4
 CAMERA_TINT = (205, 210, 205)
 NORMAL_TINT = (255, 255, 255)
 
@@ -31,7 +30,6 @@ class EchoManager:
         self.drain = 0.0
         self.sounds = []
         self.camera_view = False
-        self.audio_level = 0.0
         self.listen_timers = {}
         self.in_zone = set()
 
@@ -65,7 +63,6 @@ class EchoManager:
     def reset(self, night=1, specs=None):
         self.night = night
         self.attacker = None
-        self.audio_level = 0.0
         self.listen_timers.clear()
         self.in_zone.clear()
         for echo in self.echoes:
@@ -110,7 +107,6 @@ class EchoManager:
         self.sync(view)
 
     def listen(self, dt, camera):
-        self.audio_level = max(0.0, self.audio_level - dt * LEVEL_DECAY)
         if camera is None or not camera.audio_only:
             self.listen_timers.clear()
             self.in_zone.clear()
@@ -140,7 +136,6 @@ class EchoManager:
 
     def hear(self, name, volume):
         self.sounds.append((name, volume))
-        self.audio_level = max(self.audio_level, volume)
 
     def sync(self, view):
         eye = view.position

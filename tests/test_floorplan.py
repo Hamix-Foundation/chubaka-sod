@@ -5,8 +5,9 @@ from chubaka.floorplan import DOOR_H, EDGE_DATA, FloorPlan, plan, segment_hits_r
 
 def test_plan_has_every_labelled_room():
     fp = plan()
-    for n in range(1, 19):
+    for n in range(1, 17):
         assert f"room_{n:02d}" in fp.regions
+    assert "room_17" not in fp.regions and "room_18" not in fp.regions
     assert "archive" in fp.regions
     assert fp.regions["room_08"].kind == "guard"
 
@@ -173,3 +174,13 @@ def test_every_camera_has_a_visible_cone():
         cx, _, cz = cam.position
         fx, fz = cam.forward
         assert fp.ray_distance(cx, cz, fx, fz, 34.0) > 3.0, cam.label
+
+
+def test_central_passage_is_narrow_and_has_no_class_doors():
+    fp = plan()
+    channel = fp.regions["channel"]
+    assert channel.e1 - channel.e0 <= 3.2
+    for a, b, cut in fp.links:
+        if "channel" in (a, b):
+            other = b if a == "channel" else a
+            assert fp.regions[other].kind in ("toilet", "corridor"), other
