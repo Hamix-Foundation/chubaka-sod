@@ -1,0 +1,11 @@
+newmtl black
+Kd 0.05 0.05 0.06
+
+newmtl leather
+Kd 1 1 1
+map_Kd ../textures/leather.png
+
+newmtl metal_black
+Kd 1 1 1
+map_Kd ../textures/metal_black.png
+

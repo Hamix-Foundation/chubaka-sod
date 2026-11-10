@@ -1,0 +1,3 @@
+numpy>=1.23
+miniaudio>=1.60
+maturin>=1.5,<2.0

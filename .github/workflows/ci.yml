@@ -1,0 +1,17 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers libvulkan1 libegl1 libgl1-mesa-dri libxkbcommon-dev libwayland-dev xvfb
+      - run: pip install maturin numpy miniaudio pytest
+      - run: maturin develop --profile fast
+      - run: python -m pytest tests -q
+      - run: python -m lysyk.engine probe
+      - run: python tools/snapshot.py --api vulkan --out snaps-vk && python tools/snapshot.py --api gl --out snaps-gl --compare snaps-vk

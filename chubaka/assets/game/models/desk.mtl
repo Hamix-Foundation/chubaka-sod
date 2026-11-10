@@ -1,0 +1,20 @@
+newmtl Table Top
+Kd 1 1 1
+map_Kd ../textures/desk_top.png
+
+newmtl Walls
+Kd 1 1 1
+map_Kd ../textures/wood_old.png
+
+newmtl Chrome Dirty
+Kd 1 1 1
+map_Kd ../textures/metal_black.png
+
+newmtl Mat.1
+Kd 1 1 1
+map_Kd ../textures/metal_black.png
+
+newmtl default
+Kd 1 1 1
+map_Kd ../textures/metal_black.png
+

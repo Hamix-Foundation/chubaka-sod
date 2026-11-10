@@ -1,0 +1,12 @@
+newmtl portrait
+Kd 1 1 1
+map_Kd ../textures/portrait.png
+
+newmtl wood_dark
+Kd 1 1 1
+map_Kd ../textures/wood_dark.png
+
+newmtl worldmap
+Kd 1 1 1
+map_Kd ../textures/worldmap.png
+

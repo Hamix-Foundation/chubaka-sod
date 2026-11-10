@@ -1,0 +1,4 @@
+newmtl brick
+Kd 1 1 1
+map_Kd ../textures/brick.png
+

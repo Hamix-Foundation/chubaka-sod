@@ -1,0 +1,16 @@
+newmtl cloth_dark
+Kd 1 1 1
+map_Kd ../textures/cloth_dark.png
+
+newmtl metal_black
+Kd 1 1 1
+map_Kd ../textures/metal_black.png
+
+newmtl wood_dark
+Kd 1 1 1
+map_Kd ../textures/wood_dark.png
+
+newmtl wood_panel
+Kd 1 1 1
+map_Kd ../textures/wood_panel.png
+

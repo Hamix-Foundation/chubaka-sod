@@ -1,0 +1,12 @@
+newmtl paper
+Kd 1 1 1
+map_Kd ../textures/paper.png
+
+newmtl plywood
+Kd 1 1 1
+map_Kd ../textures/plywood.png
+
+newmtl wood_dark
+Kd 1 1 1
+map_Kd ../textures/wood_dark.png
+

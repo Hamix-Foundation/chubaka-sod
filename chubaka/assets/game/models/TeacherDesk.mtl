@@ -1,0 +1,26 @@
+newmtl desk_top
+Kd 0.84 0.74 0.55
+
+newmtl leather
+Kd 1 1 1
+map_Kd ../textures/leather.png
+
+newmtl metal_black
+Kd 1 1 1
+map_Kd ../textures/metal_black.png
+
+newmtl plywood
+Kd 1 1 1
+map_Kd ../textures/plywood.png
+
+newmtl steel
+Kd 0.55 0.56 0.58
+
+newmtl wood_dark
+Kd 1 1 1
+map_Kd ../textures/wood_dark.png
+
+newmtl wood_old
+Kd 1 1 1
+map_Kd ../textures/wood_old.png
+

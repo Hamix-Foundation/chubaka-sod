@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.android/
+build/
+android/app/build/
+android/.gradle/
+android/app/.cxx/
+android/local.properties
+lysyk/native/target/
+*.so
+*.dll
+*.dylib
+*.apk
+*.aab
+.pytest_cache/

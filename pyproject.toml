@@ -1,0 +1,28 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "lysyk"
+version = "1.0.0"
+description = "Lysyk Engine: a Rust (wgpu) 3D/2D engine for Python, with the game Chubaka: The Smell Of Death"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.23", "miniaudio>=1.60"]
+classifiers = ["Programming Language :: Rust", "Programming Language :: Python :: 3"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+lysyk = "lysyk.engine.__main__:main"
+chubaka = "chubaka.app:main"
+
+[tool.maturin]
+manifest-path = "lysyk/native/Cargo.toml"
+module-name = "lysyk.engine._native"
+features = ["extension-module", "abi3"]
+python-source = "."
+include = [{ path = "assets/**/*", format = "sdist" }, { path = "chubaka/assets/**/*", format = "sdist" }]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

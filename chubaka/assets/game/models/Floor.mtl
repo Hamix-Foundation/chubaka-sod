@@ -1,0 +1,11 @@
+newmtl floor_base
+Kd 0.08 0.06 0.05
+
+newmtl parquet
+Kd 1 1 1
+map_Kd ../textures/parquet.png
+
+newmtl wood_dark
+Kd 1 1 1
+map_Kd ../textures/wood_dark.png
+
