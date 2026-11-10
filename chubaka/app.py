@@ -38,6 +38,10 @@ class ChubakaGame(Game):
             vsync=self.settings.vsync and not (android_device() and self.profile["fps"] == 30), msaa=self.settings.msaa and self.profile["msaa"], backend=self.settings.graphics_api,
         )
         self.quality = quality
+        try:
+            self.ray_tracing_enabled = bool(self.settings.ray_tracing and self.gpu_info().get("ray_tracing_supported", False))
+        except Exception:
+            self.ray_tracing_enabled = False
         self.canvas.load_font("zombie", asset("fonts", "BloodVictimZombie.ttf"))
         self.audio.master = self.settings.master
         self.audio.buses["music"] = self.settings.music
@@ -118,7 +122,8 @@ class ChubakaGame(Game):
             if button == 0:
                 self.pause_menu.press(sx, sy)
             return
-        if button == 0 and self.pause_hud_visible() and 24 <= sx <= 142 and 108 <= sy <= 166:
+        px, py, pw, ph = self.pause_menu.HUD_X, self.pause_menu.HUD_Y, self.pause_menu.HUD_W, self.pause_menu.HUD_H
+        if button == 0 and self.pause_hud_visible() and px <= sx <= px + pw and py <= sy <= py + ph:
             self.pause_game()
             return
         super().on_mouse_press(x, y, button)
@@ -139,7 +144,8 @@ class ChubakaGame(Game):
             elif phase == "up":
                 self.pause_menu.release(sx, sy)
             return
-        if phase == "down" and self.pause_hud_visible() and 24 <= sx <= 142 and 108 <= sy <= 166:
+        px, py, pw, ph = self.pause_menu.HUD_X, self.pause_menu.HUD_Y, self.pause_menu.HUD_W, self.pause_menu.HUD_H
+        if phase == "down" and self.pause_hud_visible() and px <= sx <= px + pw and py <= sy <= py + ph:
             self.pause_game()
             return
         super().on_touch(touch_id, phase, x, y)

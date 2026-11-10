@@ -130,7 +130,7 @@ class ClassroomScene(Scene):
         profile = game.profile
         self.lighting = Lighting()
         configure_lighting(self.lighting)
-        if profile["detail"] == 0:
+        if profile["detail"] <= 0:
             self.lighting.fog_density = 0.0
             self.lighting.fog_scatter = 0.0
         self.renderer = Renderer(game, self.lighting)

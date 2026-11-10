@@ -21,7 +21,7 @@ pub const SHADER_SHADOW: &str = include_str!("../shaders/shadow.wgsl");
 pub const SHADER_UI: &str = include_str!("../shaders/ui.wgsl");
 
 const GLOBAL_FLOATS: usize = 76 + 12 * MAX_LIGHTS;
-const SHADOW_RES: [u32; 3] = [4, 1024, 2048];
+const SHADOW_RES: [u32; 4] = [4, 1024, 2048, 2560];
 const SHADOW_HALF: f64 = 72.0;
 const SHADOW_BACK: f64 = 260.0;
 const SHADOW_FRONT: f64 = 200.0;

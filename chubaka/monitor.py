@@ -22,7 +22,7 @@ PANEL_LINE = (255, 255, 255, 170)
 ROOM_FILL = (14, 14, 14, 255)
 CAM_FILL = (72, 72, 72, 255)
 CAM_ACTIVE = (150, 186, 0, 255)
-SHORT = {"toilet": "WC", "archive": "АРХ", "guard": ""}
+SHORT = {"toilet": "WC", "archive": "archive_short", "guard": ""}
 CONE_RANGE = 34.0
 CONE_RAYS = 96
 CONE_COLOR = (178, 226, 36)
@@ -299,6 +299,8 @@ class CameraMonitor:
             if region.kind == "corridor":
                 continue
             label = SHORT.get(region.kind) or region.name.replace("room_", "")
+            if region.kind == "archive":
+                label = translate(self.language, label)
             sc.text(label, x + w / 2, y + h / 2, GREY, 10, "center", "center")
         gx, gy, gw, gh = self.region_rect(self.plan.regions["room_08"])
         sc.text(translate(self.language, "you"), gx + gw / 2, gy - 8, WHITE, 11, "center", "center", True)
@@ -349,7 +351,8 @@ class CameraMonitor:
         if int(self.time * 1.6) % 2 == 0:
             sc.rect(56, 44, 38, 38, (232, 24, 24, 255), 19)
         sc.text(f"{translate(self.language, 'cam')} {cam.label}", 110, 40, WHITE, 40, "left", "top", True, True)
-        sc.text(cam.title, 56, 98, WHITE, 22, "left", "top", False, True)
+        camera_title = translate(self.language, "camera_" + cam.label.lower())
+        sc.text(camera_title if camera_title != "camera_" + cam.label.lower() else cam.title, 56, 98, WHITE, 22, "left", "top", False, True)
         sc.text(clock, w - 52, 38, WHITE, 48, "right", "top", True, True)
         sc.text(f"{translate(self.language, 'night')} {night}", w - 52, 92, WHITE, 26, "right", "top", False, True)
         sc.text(f"{translate(self.language, 'power')}: {power}%", 52, h - 112, WHITE, 28, "left", "top", True, True)

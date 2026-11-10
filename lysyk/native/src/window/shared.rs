@@ -33,7 +33,12 @@ impl GpuHandle {
     }
 
     fn info<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        adapter_info_dict(py, &self.gpu.info, self.gpu.api_name)
+        let info = adapter_info_dict(py, &self.gpu.info, self.gpu.api_name)?;
+        info.set_item(
+            "ray_tracing_supported",
+            self.gpu.device.features().contains(wgpu::Features::EXPERIMENTAL_RAY_QUERY),
+        )?;
+        Ok(info)
     }
 
     fn profile<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {

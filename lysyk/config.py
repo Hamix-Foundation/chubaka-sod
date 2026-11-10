@@ -17,6 +17,7 @@ class Settings:
     graphics_api: str = "auto"
     show_fps: bool = False
     quality: str = "auto"
+    ray_tracing: bool = False
     language: str = "uk"
 
     @staticmethod

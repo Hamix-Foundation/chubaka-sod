@@ -8,6 +8,7 @@ fn enumerate_adapters<'py>(py: Python<'py>, api: &str) -> PyResult<Vec<Bound<'py
         for a in pollster::block_on(inst.enumerate_adapters(backends)) {
             let info = a.get_info();
             let d = adapter_info_dict(py, &info, name)?;
+            d.set_item("ray_tracing_supported", a.features().contains(wgpu::Features::EXPERIMENTAL_RAY_QUERY))?;
             let lim = a.limits();
             d.set_item("max_texture_2d", lim.max_texture_dimension_2d)?;
             d.set_item("max_uniform_buffer", lim.max_uniform_buffer_binding_size)?;

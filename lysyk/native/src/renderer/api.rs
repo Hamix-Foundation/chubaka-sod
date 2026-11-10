@@ -161,7 +161,7 @@ impl Renderer {
 
     #[setter]
     fn set_shadow_quality(&mut self, v: usize) {
-        self.shadow_quality = v.min(2);
+        self.shadow_quality = v.min(3);
     }
 
     #[getter]

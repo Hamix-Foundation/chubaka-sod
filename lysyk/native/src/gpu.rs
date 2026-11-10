@@ -259,7 +259,15 @@ pub fn open(
                 wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits());
             let desc = wgpu::DeviceDescriptor {
                 label: Some("lysyk"),
-                required_features: wgpu::Features::empty(),
+                required_features: if info.backend == wgpu::Backend::Vulkan
+                    && adapter
+                        .features()
+                        .contains(wgpu::Features::EXPERIMENTAL_RAY_QUERY)
+                {
+                    wgpu::Features::EXPERIMENTAL_RAY_QUERY
+                } else {
+                    wgpu::Features::empty()
+                },
                 required_limits: limits,
                 ..Default::default()
             };

@@ -38,7 +38,7 @@ impl Renderer {
 
         let shadow_on = lt.shadows && self.shadow_quality > 0;
         let res = if shadow_on {
-            SHADOW_RES[self.shadow_quality.min(2)]
+            SHADOW_RES[self.shadow_quality.min(SHADOW_RES.len() - 1)]
         } else {
             SHADOW_RES[0]
         };

@@ -3,6 +3,11 @@ from chubaka.widgets import Button
 
 
 class PauseMenu:
+    HUD_X = 1124
+    HUD_Y = 78
+    HUD_W = 132
+    HUD_H = 56
+
     def __init__(self, game):
         self.game = game
         self.anim = 0.0
@@ -23,9 +28,11 @@ class PauseMenu:
         self.menu_button.update(dt)
 
     def draw_hud(self, sc):
-        sc.rect(24, 108, 118, 58, (13, 13, 13, 210), 4)
-        sc.raw.outline(sc.stage.ox + 24 * sc.stage.scale, sc.stage.oy + 108 * sc.stage.scale, 118 * sc.stage.scale, 58 * sc.stage.scale, (170, 30, 30, 230), 4 * sc.stage.scale, 1.5 * sc.stage.scale)
-        sc.text("Ⅱ  " + self.t("pause_button"), 83, 137, (255, 255, 255, 255), 19, "center", "center", True)
+        x, y, w, h = self.HUD_X, self.HUD_Y, self.HUD_W, self.HUD_H
+        sc.rect(x, y, w, h, (8, 9, 10, 218), 8)
+        sc.raw.outline(sc.stage.ox + x * sc.stage.scale, sc.stage.oy + y * sc.stage.scale, w * sc.stage.scale, h * sc.stage.scale, (190, 44, 38, 235), 8 * sc.stage.scale, 1.5 * sc.stage.scale)
+        sc.text("Ⅱ", x + 29, y + h / 2, (255, 255, 255, 255), 27, "center", "center", True)
+        sc.text(self.t("pause_button"), x + 80, y + h / 2, (242, 242, 242, 255), 15, "center", "center", True)
 
     def draw(self, sc):
         a = self.anim
