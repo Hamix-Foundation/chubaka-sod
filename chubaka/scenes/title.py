@@ -224,7 +224,9 @@ class TitleScene(Scene):
         year = self.game_config.get("copyright_year", 2026)
         license_name = self.game_config.get("license", "GNU GPL v3.0")
         sc.text(f"© {year} {publisher} · {license_name}", 1274, 673, (220, 220, 220, 255), 18, "right", "top")
-        self.game.fx.draw(sc, grain=0.06, scanlines=0.07, vignette=0.0 if self.game.quality == "low" else 0.6)
+        profile = self.game.profile
+        vignette = 0.0 if self.game.quality in ("potato", "low") else 0.6
+        self.game.fx.draw(sc, grain=profile["grain"], scanlines=profile["scanlines"], vignette=vignette)
         if self.settings_open:
             self.settings_panel.draw(sc)
         if self.license_open:

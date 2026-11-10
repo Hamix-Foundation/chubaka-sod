@@ -47,4 +47,6 @@ class NightScene(Scene):
         a = int(255 * smoothstep(self.time / 0.8))
         shake = max(0.0, 1.0 - self.time * 1.5) * 8.0
         sc.text(f"{translate(self.game.settings.language, 'night')} {self.night}", 639 + shake * (1 if int(self.time * 40) % 2 else -1), 357, (255, 255, 255, a), 60, "center", "center")
-        self.game.fx.draw(sc, grain=0.05, scanlines=0.05, vignette=0.0 if self.game.quality == "low" else 0.5)
+        profile = self.game.profile
+        vignette = 0.0 if self.game.quality in ("potato", "low") else 0.5
+        self.game.fx.draw(sc, grain=profile["grain"], scanlines=profile["scanlines"], vignette=vignette)

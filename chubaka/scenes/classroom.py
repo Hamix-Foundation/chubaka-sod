@@ -13,7 +13,7 @@ from lysyk.engine.door import Door
 from lysyk.engine.flashlight import Flashlight
 from lysyk.engine.interact import Hotspot, Interaction, forward_vector
 from lysyk.engine.lighting import Lighting, PointLight
-from lysyk.engine.objects import MODE_GLOW, MODE_SKY, Camera, GameObject
+from lysyk.engine.objects import MODE_GLOW, MODE_LIT, MODE_SKY, Camera, GameObject
 from lysyk.engine.particles import ParticlePool, spark_mesh
 from lysyk.engine.renderer import Renderer
 from lysyk.engine.rig import Pose, PoseRig
@@ -134,27 +134,30 @@ class ClassroomScene(Scene):
             self.lighting.fog_density = 0.0
             self.lighting.fog_scatter = 0.0
         self.renderer = Renderer(game, self.lighting)
+        potato = game.quality == "potato"
+        surface_gloss = 0.0 if potato else 0.1
+        glow_mode = MODE_LIT if potato else MODE_GLOW
         for key, value in (("shadow_quality", profile["shadow_quality"]), ("shadow_range", profile["shadow_range"])):
             if hasattr(self.renderer, key):
                 setattr(self.renderer, key, value)
         self.world = World()
         self.world.add(GameObject(data.sky, mode=MODE_SKY))
-        self.world.add(GameObject(data.outside, mode=MODE_GLOW))
-        self.world.add(GameObject(data.floor, cast=False, gloss=0.1))
+        self.world.add(GameObject(data.outside, mode=glow_mode))
+        self.world.add(GameObject(data.floor, cast=False, gloss=surface_gloss))
         self.world.add(GameObject(data.shell, cast=True))
         self.world.add(GameObject(data.trim, cast=False))
-        self.world.add(GameObject(data.furniture, cast=True, gloss=0.1))
+        self.world.add(GameObject(data.furniture, cast=True, gloss=surface_gloss))
         self.world.add(GameObject(data.decor, cast=False))
         self.world.add(GameObject(data.corridor, cast=True))
-        self.torch = GameObject(data.torch, position=(-4.15, 0.795, 2.55), rotation=(0.0, 1.3, 0.0), gloss=0.3)
+        self.torch = GameObject(data.torch, position=(-4.15, 0.795, 2.55), rotation=(0.0, 1.3, 0.0), gloss=0.0 if potato else 0.3)
         self.world.add(self.torch)
         self.tube_objects = []
         self.tube_lights = []
         for index, (x, y, z) in enumerate(data.tubes):
-            obj = GameObject(data.tube_mesh, TUBE_COLOR, position=(x, y, z), mode=MODE_GLOW)
+            obj = GameObject(data.tube_mesh, TUBE_COLOR, position=(x, y, z), mode=glow_mode)
             self.world.add(obj)
             self.tube_objects.append(obj)
-            if profile["detail"] > 0 or index == 0:
+            if not potato and (profile["detail"] > 0 or index == 0):
                 light = PointLight((x, y - 0.4, z), (0.78, 0.92, 1.0), 0.6, 5.0)
                 self.lighting.add_light(light)
                 self.tube_lights.append(light)
@@ -162,7 +165,7 @@ class ClassroomScene(Scene):
             self.lighting.add_light(PointLight((-0.5, 2.4, 0.4), (0.45, 0.55, 0.95), 0.14, 6.0))
             self.lighting.add_light(PointLight((DOOR_CENTER - 1.0, 2.7, DOOR_Z - 2.4), (0.6, 0.75, 0.65), 0.2, 4.5))
         self.flashlight = Flashlight(self.lighting, intensity=3.4, radius=14.0)
-        leaf = GameObject(data.door_leaf, cast=True, gloss=0.05)
+        leaf = GameObject(data.door_leaf, cast=True, gloss=0.0 if potato else 0.05)
         self.world.add(leaf)
         self.door = Door(leaf, data.door_hinge, 0.0, -1.0, 0.12, 5.0, self.door_event)
         self.door_spot = self.interaction.add(Hotspot("Door", (DOOR_CENTER, 1.2, DOOR_Z), 1.1, self.go_door, True, 14.0))
@@ -473,4 +476,6 @@ class ClassroomScene(Scene):
         light_state = translate(self.game.settings.language, "on" if self.flashlight.on else "off")
         self.light_button.label = f"{translate(self.game.settings.language, 'light')}: {light_state}"
         self.light_button.draw(sc)
-        self.game.fx.draw(sc, grain=0.045, scanlines=0.04, vignette=0.0 if self.game.quality == "low" else 0.7, glitch_bars=False)
+        profile = self.game.profile
+        vignette = 0.0 if self.game.quality in ("potato", "low") else 0.7
+        self.game.fx.draw(sc, grain=profile["grain"], scanlines=profile["scanlines"], vignette=vignette, glitch_bars=False)
