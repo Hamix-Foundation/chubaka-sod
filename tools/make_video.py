@@ -4,7 +4,7 @@ import struct
 import subprocess
 import sys
 
-MAGIC = b"LYV2"
+MAGIC = b"LYV3"
 HEADER_SIZE = 40
 
 
@@ -74,7 +74,7 @@ def convert(src, dst, quality=8, max_width=0):
     offset = HEADER_SIZE + n * 16
     table = bytearray()
     for f, t in zip(frames, times):
-        table += struct.pack("<QII", offset, len(f), int(round(t * 1000)))
+        table += struct.pack("<QII", offset, len(f), int(round(t * 1_000_000)))
         offset += len(f)
     with open(dst, "wb") as fh:
         fh.write(MAGIC + struct.pack("<IIIfQQI", w, h, n, fps, offset, len(audio), 0))

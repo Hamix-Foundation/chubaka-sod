@@ -1,9 +1,11 @@
 import argparse
 import os
+import sys
 
 from chubaka import asset
 from chubaka.scenes.classroom import ClassroomScene
 from chubaka.scenes.cutscene import CutsceneScene
+from chubaka.scenes.intro import IntroScene
 from chubaka.scenes.night import NightScene
 from chubaka.scenes.title import TitleScene
 from chubaka.state import Progress
@@ -44,10 +46,11 @@ class ChubakaGame(Game):
         self.progress = Progress()
         self.fx = FilmFx(self.canvas, grain=self.profile["grain"] > 0.0, scanlines=self.profile["scanlines"] > 0.0)
         self.scenes.register("title", TitleScene(self))
+        self.scenes.register("intro", IntroScene(self))
         self.scenes.register("cutscene", CutsceneScene(self))
         self.scenes.register("night", NightScene(self))
         self.scenes.register("classroom", ClassroomScene(self))
-        self.scenes.switch("title")
+        self.scenes.switch("intro")
 
     def on_key_press(self, key, mods):
         if key == K.ESCAPE and self.scenes.current_name in ("classroom", "cutscene", "night"):
@@ -63,7 +66,7 @@ class ChubakaGame(Game):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Chubaka: The Smell Of Death on Lysyk Engine")
-    ap.add_argument("--api", default=None, choices=["auto", "vulkan", "gl"])
+    ap.add_argument("--api", default=None, choices=["auto", "vulkan", "gl", "dx12"] if sys.platform == "win32" else ["auto", "vulkan", "gl"])
     ap.add_argument("--quality", default=None, choices=sorted(PROFILES))
     ap.add_argument("--no-audio", action="store_true")
     ap.add_argument("--fullscreen", action="store_true")
