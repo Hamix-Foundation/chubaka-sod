@@ -17,6 +17,9 @@ def decoder_count():
     return max(1, min(MAX_WORKERS, os.cpu_count() or 1))
 
 
+VIDEO_DECODER = ThreadPoolExecutor(max_workers=decoder_count(), thread_name_prefix="lysyk-video")
+
+
 class VideoPlayer:
     def __init__(self, canvas, path, audio=None, loop=False, volume=1.0, bus="sfx"):
         self.stream = VideoStream(path)
@@ -32,6 +35,7 @@ class VideoPlayer:
         self.playing = False
         self.finished = False
         self.started = False
+        self.prepared = False
         self.waited = 0.0
         self.has_sound = audio is not None and bool(self.sound_path) and os.path.isfile(self.sound_path)
         if self.has_sound:
@@ -39,7 +43,7 @@ class VideoPlayer:
         self.last = self.stream.frame_count - 1
         frame_bytes = max(1, self.stream.width * self.stream.height * 4)
         self.ahead = max(MIN_AHEAD, min(MAX_AHEAD, BUFFER_BYTES // frame_bytes))
-        self.decoder = ThreadPoolExecutor(max_workers=decoder_count(), thread_name_prefix="lysyk-video")
+        self.decoder = VIDEO_DECODER
         self.jobs = {}
         self.ready = {}
         self.bad = set()
@@ -90,12 +94,19 @@ class VideoPlayer:
     def play(self):
         self._reset_buffers()
         self.time = 0.0
-        self.frame = -1
+        self.frame = 0 if self.prepared else -1
+        self.prepared = False
         self.finished = False
         self.playing = True
         self.started = False
         self.waited = 0.0
-        self._feed(0)
+        self._feed(self.frame + 1 if self.frame >= 0 else 0)
+
+    def prepare(self):
+        if self.frame < 0:
+            self.texture.update(self.stream.decode(0))
+            self.frame = 0
+            self.prepared = True
 
     def stop(self):
         self.playing = False
@@ -116,7 +127,7 @@ class VideoPlayer:
         for index in [i for i in self.jobs if i < target]:
             if self.jobs[index].cancel():
                 del self.jobs[index]
-        end = min(self.last, target + self.ahead)
+        end = min(self.last, target + self.ahead - 1)
         for index in range(max(0, target), end + 1):
             if index in self.jobs or index in self.ready or index in self.bad:
                 continue
@@ -142,8 +153,12 @@ class VideoPlayer:
     def _begin(self, dt):
         self._collect()
         self.waited += dt
-        need = max(1, min(self.ahead // 2 + 1, self.last + 1))
-        if len(self.ready) >= need or not self.jobs or self.waited >= START_TIMEOUT:
+        next_frame = max(0, self.frame + 1)
+        buffered = 0
+        while next_frame + buffered in self.ready:
+            buffered += 1
+        need = min(3, self.last - next_frame + 1)
+        if buffered >= need or not self.jobs or self.waited >= START_TIMEOUT:
             self.started = True
             self._start_audio()
             return True
@@ -156,10 +171,7 @@ class VideoPlayer:
             return
         if not self.started and not self._begin(dt):
             return
-        if self.voice is not None and not self.voice.finished:
-            self.time = max(self.time, self.voice.position)
-        else:
-            self.time += dt
+        self.time += dt
         if self.time >= self.duration:
             if self.loop:
                 self.time = 0.0

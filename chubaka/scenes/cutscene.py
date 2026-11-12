@@ -9,7 +9,7 @@ from lysyk.engine.media.video import VideoPlayer
 class CutsceneScene(Scene):
     def __init__(self, game):
         super().__init__(game)
-        self.video = VideoPlayer(game.canvas, asset("video", "night1_cutscene.lyv"), game.audio, False, 1.0, "sfx")
+        self.video = None
         self.skip_button = Button("", 1058, 23, 192, 57, self.skip, 35)
         self.skip_button.arrow = False
         self.leaving = False
@@ -19,10 +19,13 @@ class CutsceneScene(Scene):
         self.leaving = False
         self.skip_button.hover = False
         self.skip_button.down = False
+        if self.video is None:
+            self.video = VideoPlayer(self.game.canvas, asset("video", "night1_cutscene.lyv"), self.game.audio, False, 1.0, "sfx")
         self.video.play()
 
     def exit(self):
-        self.video.stop()
+        if self.video is not None:
+            self.video.stop()
 
     def skip(self):
         if self.leaving:

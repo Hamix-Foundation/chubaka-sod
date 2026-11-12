@@ -1,6 +1,6 @@
 import platform
-import json
 import sys
+import json
 from pathlib import Path
 
 from lysyk.engine import keys as K
@@ -26,6 +26,8 @@ class SettingsPanel:
         self.closed = False
         self.hover_index = -1
         self.row_glow = []
+        self.ray_tracing_supported = False
+        self.ray_tracing = False
         from chubaka.state import load_game_config
         self.game_config = load_game_config()
         self.version = self.game_config.get("version", "unknown")
@@ -38,6 +40,8 @@ class SettingsPanel:
             gpu = game.gpu_info()
             self.gpu_name = gpu.get("name", "unknown")
             self.gpu_api = gpu.get("api", "unknown")
+            self.ray_tracing_supported = gpu.get("ray_tracing_supported", False)
+            self.ray_tracing = bool(game.settings.ray_tracing and self.ray_tracing_supported)
         except Exception:
             self.gpu_name = "unknown"
             self.gpu_api = "unknown"
@@ -68,23 +72,30 @@ class SettingsPanel:
             self.row_glow[i] += (target - self.row_glow[i]) * min(1.0, step * 2.0)
 
     def choices(self, key):
-        return {
-            "language": ["uk", "en"], "quality": ["auto", "low", "medium", "high"],
-            "fps_limit": [0, 30, 45, 60], "vsync": [False, True], "graphics_api": ["auto", "vulkan", "gl"],
-        }[key]
+        choices = {
+            "language": ["uk", "en"], "quality": ["auto", "potato", "low", "medium", "high", "ultra"],
+            "fps_limit": [0, 30, 45, 60], "vsync": [False, True], "msaa": [False, True], "graphics_api": ["auto", "vulkan", "gl"],
+        }
+        if sys.platform == "win32":
+            choices["graphics_api"].append("dx12")
+        return choices[key]
 
     def value(self, key):
         value = getattr(self.game.settings, key)
         if key == "language":
             return self.t("ukrainian" if value == "uk" else "english")
         if key == "quality":
-            return self.t({"auto": "automatic", "low": "low", "medium": "medium", "high": "high"}.get(value, "automatic"))
+            return self.t({"auto": "automatic", "potato": "potato", "low": "low", "medium": "medium", "high": "high", "ultra": "ultra"}.get(value, "automatic"))
+        if key == "ray_tracing":
+            return self.t("on" if value else "off")
         if key == "fps_limit":
             return self.t("automatic") if value == 0 else str(value)
         if key == "vsync":
             return self.t("on" if value else "off")
+        if key == "msaa":
+            return self.t("on" if value else "off")
         if key == "graphics_api":
-            return self.t({"auto": "automatic", "vulkan": "vulkan", "gl": "gl"}.get(value, "automatic"))
+            return self.t({"auto": "automatic", "vulkan": "vulkan", "gl": "gl", "dx12": "DirectX 12"}.get(value, "automatic"))
         if key == "show_fps":
             return self.t("fps_on" if value else "fps_off")
         return f"{int(value * 100)}%"
@@ -100,8 +111,11 @@ class SettingsPanel:
         if self.section == "game":
             return [("language", self.t("language"), "language"), ("show_fps", self.t("show_fps"), "show_fps"), (None, self.t("about_open"), "about")]
         if self.section == "graphics":
-            return [("quality", self.t("quality"), "quality"), ("fps_limit", self.t("fps"), "fps_limit"), ("vsync", self.t("vsync"), "vsync"), ("graphics_api", self.t("api"), "graphics_api")]
+            return [("quality", self.t("quality"), "quality"), ("fps_limit", self.t("fps"), "fps_limit"), ("vsync", self.t("vsync"), "vsync"), ("msaa", self.t("msaa"), "msaa"), ("graphics_api", self.t("api"), "graphics_api"), ("ray_tracing", self.t("ray_tracing"), "ray_tracing")]
         return [(key, self.t(label), key) for key, label in (("master", "master"), ("music", "music"), ("sfx", "sfx"))]
+
+    def row_spacing(self):
+        return 72 if self.section == "graphics" else 84
 
     def fitted_size(self, sc, text, size, width, height, bold=False, font=None):
         tw = sc.text_width(text, size, bold, font)
@@ -147,15 +161,25 @@ class SettingsPanel:
             legal_footer = f"© {self.game_config.get('copyright_year', 2026)} {self.game_config.get('publisher', 'Hamix Foundation')} · {self.game_config.get('license', 'GNU GPL v3.0')}"
             sc.text(legal_footer, 760 + off, 640, alpha((150, 150, 150, 255)), 14, "center", "center")
             return
+        spacing = self.row_spacing()
         for i, row in enumerate(self.rows()):
             key, label, action = row
-            y = 155 + i * 84
+            y = 155 + i * spacing
             glow = self.row_glow[i] if i < len(self.row_glow) else 0.0
-            sc.rect(435 + off, y, 650, 64, (26 + int(13 * glow), 26, 26, int((190 + 45 * glow) * a)), 3)
+            ray_unavailable = key == "ray_tracing" and not self.ray_tracing_supported
+            row_color = (24, 24, 24, 160) if ray_unavailable else (26 + int(13 * glow), 26, 26, int((190 + 45 * glow) * a))
+            sc.rect(435 + off, y, 650, 64, alpha(row_color), 3)
             if glow > 0.02:
                 sc.rect(435 + off, y, 3, 64, (190, 25, 25, int(255 * glow * a)), 0)
             label_size = self.fitted_size(sc, label, 21, 330, 50)
-            sc.text(label, 458 + off, y + 32, alpha((240, 240, 240, 255)), label_size, "left", "center")
+            label_color = (130, 130, 130, 255) if ray_unavailable else (240, 240, 240, 255)
+            sc.text(label, 458 + off, y + 32, alpha(label_color), label_size, "left", "center")
+            if key == "ray_tracing":
+                badge_x, badge_y = 604 + off, y + 22
+                badge_color = (76, 76, 76, 220) if ray_unavailable else (118, 75, 31, 240)
+                badge_text = (148, 148, 148, 255) if ray_unavailable else (255, 210, 139, 255)
+                sc.rect(badge_x, badge_y, 115, 20, alpha(badge_color), 5)
+                sc.text(self.t("experimental"), badge_x + 57.5, badge_y + 10, alpha(badge_text), 11, "center", "center", True)
             if key in ("master", "music", "sfx"):
                 value = getattr(self.game.settings, key)
                 bx, bw = 800 + off, 160
@@ -163,11 +187,13 @@ class SettingsPanel:
                 sc.rect(bx, y + 29, max(6, bw * value), 6, alpha((185, 35, 35, 255)), 3)
                 sc.raw.circle(sc.stage.ox + (bx + bw * value) * s, sc.stage.oy + (y + 32) * s, 8 * s, alpha((235, 235, 235, 255)))
                 sc.text(f"{int(value * 100)}%", 1055 + off, y + 32, alpha((255, 255, 255, 255)), 18, "right", "center")
-            elif key in ("show_fps", "vsync"):
+            elif key in ("show_fps", "vsync", "msaa", "ray_tracing"):
                 checked = bool(getattr(self.game.settings, key))
                 cx, cy = 1040 + off, y + 32
-                sc.raw.rect(st.ox + (cx - 12) * s, st.oy + (cy - 12) * s, 24 * s, 24 * s, alpha((36, 36, 36, 255)), 2 * s)
-                sc.raw.outline(st.ox + (cx - 12) * s, st.oy + (cy - 12) * s, 24 * s, 24 * s, alpha((170, 170, 170, 255)), 2 * s, 1.5 * s)
+                box_color = (28, 28, 28, 180) if ray_unavailable else (36, 36, 36, 255)
+                border_color = (92, 92, 92, 255) if ray_unavailable else (170, 170, 170, 255)
+                sc.raw.rect(st.ox + (cx - 12) * s, st.oy + (cy - 12) * s, 24 * s, 24 * s, alpha(box_color), 2 * s)
+                sc.raw.outline(st.ox + (cx - 12) * s, st.oy + (cy - 12) * s, 24 * s, 24 * s, alpha(border_color), 2 * s, 1.5 * s)
                 if checked:
                     sc.text("✓", cx, cy, alpha((200, 35, 35, 255)), 22, "center", "center", True)
             elif action != "about":
@@ -189,7 +215,8 @@ class SettingsPanel:
         if getattr(self, "drag_key", None):
             self.set_slider(self.drag_key, x)
             return
-        self.hover_index = int((y - 155) // 84) if x >= 435 and 155 <= y <= 155 + len(self.rows()) * 84 else -1
+        spacing = self.row_spacing()
+        self.hover_index = int((y - 155) // spacing) if x >= 435 and 155 <= y <= 155 + len(self.rows()) * spacing else -1
 
     def set_slider(self, key, x):
         value = min(1.0, max(0.0, (x - 800 - (1.0 - self.anim) * 18.0) / 160))
@@ -226,11 +253,18 @@ class SettingsPanel:
             return
         if px < 420:
             return
-        row_index = int((py - 155) // 84)
+        row_index = int((py - 155) // self.row_spacing())
         rows = self.rows()
         if row_index < 0 or row_index >= len(rows):
             return
         key, _, action = rows[row_index]
+        if key == "ray_tracing":
+            if not self.ray_tracing_supported:
+                return
+            self.game.settings.ray_tracing = not self.game.settings.ray_tracing
+            self.game.ray_tracing_enabled = self.game.settings.ray_tracing
+            self.game.settings.save("ChubakaSOD")
+            return
         if action == "about":
             self.about = True
         elif key in ("master", "music", "sfx"):
@@ -255,14 +289,21 @@ class SettingsPanel:
             self.game.set_vsync(settings.vsync)
         elif key == "show_fps":
             self.game.overlay = settings.show_fps
+        elif key == "ray_tracing":
+            self.game.ray_tracing_enabled = settings.ray_tracing and self.ray_tracing_supported
+        elif key == "msaa":
+            self.game.set_msaa(settings.msaa)
         elif key == "quality":
-            from lysyk.profile import PROFILES, resolve
+            from lysyk.profile import quality_profile, resolve
             from lysyk.engine.fx import FilmFx
             self.game.quality = resolve(settings.quality, self.game.is_mobile)
-            self.game.profile = dict(PROFILES[self.game.quality])
+            self.game.profile = quality_profile(self.game.quality, self.game.is_mobile)
+            self.game.set_render_scale(self.game.profile["render_scale"])
             self.game.fx = FilmFx(self.game.canvas, grain=self.game.profile["grain"] > 0.0, scanlines=self.game.profile["scanlines"] > 0.0)
-            self.game.set_fps_limit(settings.fps_limit or (self.game.profile["fps"] if self.game.is_mobile else 0))
+            from lysyk.profile import frame_limit
+            self.game.set_fps_limit(frame_limit(settings.quality, self.game.is_mobile, settings.fps_limit))
         elif key == "fps_limit":
-            self.game.set_fps_limit(settings.fps_limit or (self.game.profile["fps"] if self.game.is_mobile else 0))
+            from lysyk.profile import frame_limit
+            self.game.set_fps_limit(frame_limit(settings.quality, self.game.is_mobile, settings.fps_limit))
         elif key == "language":
             self.game.scenes.current.refresh_labels()

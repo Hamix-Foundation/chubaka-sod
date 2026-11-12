@@ -9,7 +9,7 @@ from chubaka.layout import *
 from lysyk.engine.mesh import Mesh, MeshBuilder
 from lysyk.engine.model import load_textured
 
-LEVELS = (1.6, 1.0, 0.75)
+LEVELS = (6.0, 2.2, 1.6, 1.0, 0.75, 0.6)
 STEPS = {
     "Walls": 0.3, "Wainscot": 0.6, "Floor": 0.35, "Ceiling": 0.45, "Windows": 0.5, "Blackboard": 0.4, "Hangings": 0.07,
     "DoorFrame": 0.4, "DoorLeaf": 0.4, "Cabinet": 0.3, "CoatRack": 0.4, "Corridor": 0.6, "Yard": 4.0,
@@ -49,7 +49,7 @@ def model_path(name):
 
 class Models:
     def __init__(self, detail):
-        self.k = LEVELS[max(0, min(2, detail))]
+        self.k = LEVELS[max(0, min(len(LEVELS) - 1, detail + 2))]
         self.cache = {}
 
     def parts(self, name, only=None, step=None):
@@ -183,7 +183,7 @@ def build_steps(detail=1, seed=17):
 
     def decor():
         d = Batch()
-        k = LEVELS[max(0, min(2, detail))]
+        k = LEVELS[max(0, min(len(LEVELS) - 1, detail + 2))]
         papers = models.arrays("Paper")
         bricks = models.arrays("Brick")
         rubble = models.arrays("Rubble")
@@ -262,7 +262,8 @@ def build_steps(detail=1, seed=17):
 
     def make_sky():
         sky = MeshBuilder()
-        sky.ellipsoid((0, 0, 0), (300, 300, 300), (255, 255, 255), rings=8, segments=16, inside=True)
+        rings, segments = (3, 6) if detail <= -2 else (8, 16)
+        sky.ellipsoid((0, 0, 0), (300, 300, 300), (255, 255, 255), rings=rings, segments=segments, inside=True)
         out.sky = sky.build()
 
     def structure():
@@ -285,7 +286,7 @@ def build_steps(detail=1, seed=17):
         t = MeshBuilder()
         t.box((0, 0, 0), TUBE_SIZE, (255, 244, 214))
         out.tube_mesh = t.build()
-        out.triangles = sum(len(np.asarray(m.faces)) for m in (out.floor, out.shell, out.trim, out.furniture, out.decor)) + out.building.triangles
+        out.triangles = sum(len(np.asarray(m.faces)) for m in (out.floor, out.shell, out.trim, out.furniture, out.decor) if m is not None) + out.building.triangles
 
     return out, [shell, trim, floor, furniture, decor, make_sky, structure, laptop, dynamic]
 

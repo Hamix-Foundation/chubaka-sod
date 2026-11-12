@@ -22,7 +22,7 @@ PANEL_LINE = (255, 255, 255, 170)
 ROOM_FILL = (14, 14, 14, 255)
 CAM_FILL = (72, 72, 72, 255)
 CAM_ACTIVE = (150, 186, 0, 255)
-SHORT = {"toilet": "WC", "archive": "АРХ", "guard": ""}
+SHORT = {"toilet": "WC", "archive": "archive_short", "guard": ""}
 CONE_RANGE = 34.0
 CONE_RAYS = 96
 CONE_COLOR = (178, 226, 36)
@@ -47,15 +47,19 @@ class CameraMonitor:
         for b in (self.prev_button, self.next_button):
             b.arrow = False
         self.touch_buttons = {}
+        self._buttons = (self.close_button, self.prev_button, self.next_button)
         self.cone_data = {}
         self.cones = {}
         self.pointer_data = None
         self.pointer_tex = None
+        self.static_texture = None
+        self.static_frame = -1
+        self.static_rng = np.random.default_rng(41)
         self.fit_map()
 
     @property
     def buttons(self):
-        return [self.close_button, self.prev_button, self.next_button]
+        return self._buttons
 
     def fit_map(self):
         self.e_min, self.e_max, self.n_min, self.n_max = self.plan.bounds()
@@ -295,6 +299,8 @@ class CameraMonitor:
             if region.kind == "corridor":
                 continue
             label = SHORT.get(region.kind) or region.name.replace("room_", "")
+            if region.kind == "archive":
+                label = translate(self.language, label)
             sc.text(label, x + w / 2, y + h / 2, GREY, 10, "center", "center")
         gx, gy, gw, gh = self.region_rect(self.plan.regions["room_08"])
         sc.text(translate(self.language, "you"), gx + gw / 2, gy - 8, WHITE, 11, "center", "center", True)
@@ -308,12 +314,24 @@ class CameraMonitor:
             sc.text(cam.label, mx, my, DARK if active else WHITE, 13 if active else 11, "center", "center", True)
 
     def draw_static(self, sc, w, h):
-        rng = random.Random(int(self.time * 24.0))
+        frame = int(self.time * 24.0)
+        if self.static_texture is None:
+            gray = self.static_rng.integers(20, 236, (72, 128), dtype=np.uint8)
+            rgba = np.empty((72, 128, 4), dtype=np.uint8)
+            rgba[..., :3] = gray[..., None]
+            rgba[..., 3] = self.static_rng.integers(90, 231, (72, 128), dtype=np.uint8)
+            self.static_texture = sc.raw.texture(128, 72, rgba, "nearest", True)
+            self.static_frame = frame
+        elif frame != self.static_frame:
+            gray = self.static_rng.integers(20, 236, (72, 128), dtype=np.uint8)
+            rgba = np.empty((72, 128, 4), dtype=np.uint8)
+            rgba[..., :3] = gray[..., None]
+            rgba[..., 3] = self.static_rng.integers(90, 231, (72, 128), dtype=np.uint8)
+            self.static_texture.update(rgba)
+            self.static_frame = frame
         sc.rect(0, 0, w, h, (78, 80, 80, 255))
-        for _ in range(420):
-            x, y = rng.uniform(0, w), rng.uniform(0, h)
-            g = rng.randint(20, 235)
-            sc.rect(x, y, rng.uniform(4, 40), rng.uniform(2, 7), (g, g, g, rng.randint(90, 230)))
+        sc.image(self.static_texture, 0, 0, w, h, (255, 255, 255, 205), (0, 0, w / 128, h / 72))
+        rng = random.Random(frame)
         for _ in range(6):
             g = rng.randint(150, 255)
             sc.rect(0, rng.uniform(0, h), w, rng.uniform(2, 10), (g, g, g, rng.randint(40, 110)))
@@ -333,7 +351,8 @@ class CameraMonitor:
         if int(self.time * 1.6) % 2 == 0:
             sc.rect(56, 44, 38, 38, (232, 24, 24, 255), 19)
         sc.text(f"{translate(self.language, 'cam')} {cam.label}", 110, 40, WHITE, 40, "left", "top", True, True)
-        sc.text(cam.title, 56, 98, WHITE, 22, "left", "top", False, True)
+        camera_title = translate(self.language, "camera_" + cam.label.lower())
+        sc.text(camera_title if camera_title != "camera_" + cam.label.lower() else cam.title, 56, 98, WHITE, 22, "left", "top", False, True)
         sc.text(clock, w - 52, 38, WHITE, 48, "right", "top", True, True)
         sc.text(f"{translate(self.language, 'night')} {night}", w - 52, 92, WHITE, 26, "right", "top", False, True)
         sc.text(f"{translate(self.language, 'power')}: {power}%", 52, h - 112, WHITE, 28, "left", "top", True, True)

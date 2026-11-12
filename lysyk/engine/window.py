@@ -22,6 +22,9 @@ class _Target:
     def set_msaa(self, enabled):
         self._core.set_msaa(enabled)
 
+    def set_render_scale(self, scale):
+        self._core.set_render_scale(float(scale))
+
     @property
     def api(self):
         return self._gpu.api

@@ -13,10 +13,11 @@ class Settings:
     fullscreen: bool = False
     vsync: bool = True
     fps_limit: int = 0
-    msaa: bool = True
+    msaa: bool = False
     graphics_api: str = "auto"
     show_fps: bool = False
     quality: str = "auto"
+    ray_tracing: bool = False
     language: str = "uk"
 
     @staticmethod

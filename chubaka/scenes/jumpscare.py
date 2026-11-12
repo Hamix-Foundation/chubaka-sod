@@ -167,13 +167,15 @@ class JumpscareScene(Scene):
                 self.video.draw(sc, 0, 0, st.width, st.height, FIT_STRETCH)
             elif self.texture is not None:
                 self.draw_fallback(sc, st)
-            self.game.fx.draw(sc, grain=0.12, scanlines=0.08, vignette=0.6)
+            if self.game.quality != "potato":
+                self.game.fx.draw(sc, grain=0.12, scanlines=0.08, vignette=0.6)
             return
         language = self.game.settings.language
         a = int(255 * smoothstep(self.time / 0.6))
         sc.text(translate(language, "game_over"), st.width / 2, 250, (RED[0], RED[1], RED[2], a), 84, "center", "center", True, True, "zombie")
         if self.echo_spec is not None:
-            sc.text(f"{translate(language, 'caught_by')}: {self.echo_spec.name}", st.width / 2, 340, (255, 255, 255, a), 30, "center", "center")
+            sc.text(f"{translate(language, 'caught_by')}: {translate(language, 'echo_' + self.echo_spec.id)}", st.width / 2, 340, (255, 255, 255, a), 30, "center", "center")
         self.retry_button.draw(sc)
         self.menu_button.draw(sc)
-        self.game.fx.draw(sc, grain=0.07, scanlines=0.06, vignette=0.6, glitch_bars=False)
+        if self.game.quality != "potato":
+            self.game.fx.draw(sc, grain=0.07, scanlines=0.06, vignette=0.6, glitch_bars=False)

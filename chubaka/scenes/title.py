@@ -4,6 +4,7 @@ import random
 from chubaka import asset
 from chubaka.state import load_game_config, load_version
 from chubaka.settings_ui import SettingsPanel
+from chubaka.license_menu import LicensePanel
 from chubaka.links import open_url
 from chubaka.widgets import Button, SocialButton
 from lysyk.engine import keys as K
@@ -32,9 +33,13 @@ class TitleScene(Scene):
         ]
         self.settings_panel = SettingsPanel(game, self.close_settings)
         self.settings_open = False
+        self.license_panel = LicensePanel(game, self.close_license)
+        self.license_open = False
+        self.footer_pressed = False
         self.refresh_labels()
         self.music = None
-        game.audio.preload([asset("audio", "title_music.mp3")])
+        self.music_path = asset("audio", "title_music.mp3")
+        self.music_preload = game.audio.preload([self.music_path])
         self.time = 0.0
         self.rand = random.Random(11)
         self.next_glitch = 2.0
@@ -51,9 +56,15 @@ class TitleScene(Scene):
         for button in self.social_buttons:
             button.hover = False
             button.down = False
-        if self.music is None or self.music.finished:
-            self.music = self.game.audio.play(asset("audio", "title_music.mp3"), 0.42, True, "music", fade_in=1.5)
+        self.start_music()
         self.game.audio.preload([asset("audio", "night_start.mp3")])
+
+    def start_music(self):
+        if self.music is not None and not self.music.finished:
+            return
+        if self.music_preload is not None and self.music_preload.is_alive():
+            return
+        self.music = self.game.audio.play(self.music_path, 0.42, True, "music", fade_in=1.5)
 
     def refresh_labels(self):
         uk = self.game.settings.language == "uk"
@@ -64,6 +75,13 @@ class TitleScene(Scene):
     def close_settings(self):
         self.settings_panel.dismiss()
         self.game.settings.save("ChubakaSOD")
+
+    def close_license(self):
+        self.license_panel.dismiss()
+
+    def open_license(self):
+        self.license_open = True
+        self.license_panel.show()
 
     def open_settings(self):
         self.settings_open = True
@@ -89,10 +107,16 @@ class TitleScene(Scene):
             self.game.scenes.goto("night", fade=0.6, night=data["current_night"])
 
     def update(self, dt):
+        self.start_music()
         if self.settings_open:
             self.settings_panel.update(dt)
             if self.settings_panel.closed:
                 self.settings_open = False
+            return
+        if self.license_open:
+            self.license_panel.update(dt)
+            if self.license_panel.closed:
+                self.license_open = False
             return
         self.time += dt
         for b in self.buttons:
@@ -112,6 +136,8 @@ class TitleScene(Scene):
         if self.settings_open:
             self.settings_panel.move(x, y)
             return
+        if self.license_open:
+            return
         for b in self.buttons:
             b.motion(x, y)
         self.settings_button.motion(x, y)
@@ -122,6 +148,12 @@ class TitleScene(Scene):
         if button == 0:
             if self.settings_open:
                 self.settings_panel.press(x, y)
+                return
+            if self.license_open:
+                self.license_panel.press(x, y)
+                return
+            self.footer_pressed = 650 <= y <= 720 and x >= 790
+            if self.footer_pressed:
                 return
             self.settings_button.press(x, y)
             for button in self.social_buttons:
@@ -134,6 +166,14 @@ class TitleScene(Scene):
             if self.settings_open:
                 self.settings_panel.release(x, y)
                 return
+            if self.license_open:
+                self.license_panel.release(x, y)
+                return
+            if self.footer_pressed and 650 <= y <= 720 and x >= 790:
+                self.footer_pressed = False
+                self.open_license()
+                return
+            self.footer_pressed = False
             if self.settings_button.release(x, y):
                 return
             for button in self.social_buttons:
@@ -149,6 +189,9 @@ class TitleScene(Scene):
                 self.settings_panel.press(x, y)
             elif phase == "up":
                 self.settings_panel.release(x, y)
+            return
+        if self.license_open:
+            self.license_panel.touch(touch_id, phase, x, y)
             return
         if phase == "down":
             self.mouse_motion(x, y)
@@ -189,12 +232,18 @@ class TitleScene(Scene):
         year = self.game_config.get("copyright_year", 2026)
         license_name = self.game_config.get("license", "GNU GPL v3.0")
         sc.text(f"© {year} {publisher} · {license_name}", 1274, 673, (220, 220, 220, 255), 18, "right", "top")
-        self.game.fx.draw(sc, grain=0.06, scanlines=0.07, vignette=0.0 if self.game.quality == "low" else 0.6)
+        profile = self.game.profile
+        vignette = 0.0 if self.game.quality in ("potato", "low") else 0.6
+        self.game.fx.draw(sc, grain=profile["grain"], scanlines=profile["scanlines"], vignette=vignette)
         if self.settings_open:
             self.settings_panel.draw(sc)
+        if self.license_open:
+            self.license_panel.draw(sc)
 
     def key_press(self, key, mods):
-        if key == K.ESCAPE and self.settings_open:
+        if self.license_open:
+            self.license_panel.key_press(key, mods)
+        elif key == K.ESCAPE and self.settings_open:
             if self.settings_panel.about:
                 self.settings_panel.about = False
             else:

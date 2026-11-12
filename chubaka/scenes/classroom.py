@@ -16,7 +16,7 @@ from lysyk.engine.door import Door
 from lysyk.engine.flashlight import Flashlight
 from lysyk.engine.interact import Hotspot, Interaction, forward_vector
 from lysyk.engine.lighting import Lighting, PointLight
-from lysyk.engine.objects import MODE_GLOW, MODE_SKY, Camera, GameObject
+from lysyk.engine.objects import MODE_GLOW, MODE_LIT, MODE_SKY, Camera, GameObject
 from lysyk.engine.particles import ParticlePool, spark_mesh
 from lysyk.engine.renderer import Renderer
 from lysyk.engine.rig import Pose, PoseRig, shortest_angle
@@ -56,14 +56,18 @@ TAP_TIME = 0.35
 TAP_MOVE = 40.0
 
 
-def configure_lighting(lighting):
-    lighting.shadows = True
+def configure_lighting(lighting, profile):
+    lighting.shadows = profile["shadow_quality"] > 0
     lighting.set_manual(
         (58.0, 64.0, 72.0), (102.0, 108.0, 114.0), (86.0, 92.0, 98.0), (0.75, 0.8, 0.9), 0.55,
         (0.075, 0.085, 0.1), (0.04, 0.036, 0.032), SUN_ELEVATION, SUN_AZIMUTH, 0.0, 0.3,
     )
-    lighting.fog_density = 0.02
-    lighting.fog_scatter = 1.0
+    lighting.ambient_scale = profile["ambient_scale"]
+    lighting.sun_scale = profile["sun_scale"]
+    lighting.exposure = profile["exposure"]
+    lighting.shadow_strength = profile["shadow_strength"]
+    lighting.fog_density = profile["fog_density"]
+    lighting.fog_scatter = profile["fog_scatter"]
 
 
 class ClassroomScene(Scene):
@@ -113,6 +117,7 @@ class ClassroomScene(Scene):
         self.hint_stage = 0
         self.hint_timer = 0.0
         self.last_creak = -1
+        self.objective_timer = 0.0
 
     def language(self):
         return getattr(getattr(self.game, "settings", None), "language", "en")
@@ -157,50 +162,52 @@ class ClassroomScene(Scene):
         game = self.game
         profile = game.profile
         self.lighting = Lighting()
-        configure_lighting(self.lighting)
-        if profile["detail"] == 0:
-            self.lighting.fog_density = 0.0
-            self.lighting.fog_scatter = 0.0
+        configure_lighting(self.lighting, profile)
         self.renderer = Renderer(game, self.lighting)
+        potato = game.quality == "potato"
+        surface_gloss = 0.0 if potato else 0.1
+        glow_mode = MODE_LIT if potato else MODE_GLOW
         for key, value in (("shadow_quality", profile["shadow_quality"]), ("shadow_range", profile["shadow_range"])):
             if hasattr(self.renderer, key):
                 setattr(self.renderer, key, value)
         self.world = World()
         self.world.add(GameObject(data.sky, mode=MODE_SKY))
-        self.world.add(GameObject(data.floor, cast=False, gloss=0.1))
+        self.world.add(GameObject(data.floor, cast=False, gloss=surface_gloss))
         self.world.add(GameObject(data.shell, cast=True))
         self.world.add(GameObject(data.trim, cast=False))
-        self.world.add(GameObject(data.furniture, cast=True, gloss=0.1))
-        self.world.add(GameObject(data.decor, cast=False))
+        self.world.add(GameObject(data.furniture, cast=True, gloss=surface_gloss))
+        if data.decor is not None:
+            self.world.add(GameObject(data.decor, cast=False))
         self.world.add(GameObject(data.building.ground, cast=False))
         self.world.add(GameObject(data.building.structure, cast=True))
         if data.building.props is not None:
             self.world.add(GameObject(data.building.props, cast=False))
         if data.building.glass is not None:
-            self.world.add(GameObject(data.building.glass, mode=MODE_GLOW))
-        self.torch = GameObject(data.torch, position=(TEACHER_DESK[0] + 0.22, 0.795, TEACHER_DESK[1] - 0.3), rotation=(0.0, 1.3, 0.0), gloss=0.3)
+            self.world.add(GameObject(data.building.glass, mode=glow_mode))
+        self.torch = GameObject(data.torch, position=(TEACHER_DESK[0] + 0.22, 0.795, TEACHER_DESK[1] - 0.3), rotation=(0.0, 1.3, 0.0), gloss=0.0 if potato else 0.3)
         self.world.add(self.torch)
-        self.world.add(GameObject(data.laptop_body, position=(LAPTOP[0], LAPTOP[1], LAPTOP[2]), rotation=(0.0, math.pi / 2, 0.0), gloss=0.15))
-        self.laptop_screen = GameObject(data.laptop_screen, (150, 230, 190), position=(LAPTOP[0], LAPTOP[1], LAPTOP[2]), rotation=(0.0, math.pi / 2, 0.0), mode=MODE_GLOW)
+        self.world.add(GameObject(data.laptop_body, position=(LAPTOP[0], LAPTOP[1], LAPTOP[2]), rotation=(0.0, math.pi / 2, 0.0), gloss=0.0 if potato else 0.15))
+        self.laptop_screen = GameObject(data.laptop_screen, (150, 230, 190), position=(LAPTOP[0], LAPTOP[1], LAPTOP[2]), rotation=(0.0, math.pi / 2, 0.0), mode=glow_mode)
         self.world.add(self.laptop_screen)
         self.tube_objects = []
         self.tube_lights = []
+        self.tube_intensity = profile["tube_intensity"]
         for index, (x, y, z) in enumerate(data.tubes):
-            obj = GameObject(data.tube_mesh, TUBE_COLOR, position=(x, y, z), mode=MODE_GLOW)
+            obj = GameObject(data.tube_mesh, TUBE_COLOR, position=(x, y, z), mode=glow_mode)
             self.world.add(obj)
             self.tube_objects.append(obj)
-            if profile["detail"] > 0 or index == 0:
-                light = PointLight((x, y - 0.4, z), (0.78, 0.92, 1.0), 0.6, 5.0)
+            if not potato and (profile["detail"] > 0 or index == 0):
+                light = PointLight((x, y - 0.4, z), (0.78, 0.92, 1.0), self.tube_intensity, profile["tube_radius"])
                 self.lighting.add_light(light)
                 self.tube_lights.append(light)
         if profile["detail"] > 0:
-            self.lighting.add_light(PointLight((-0.5, 2.4, 0.4), (0.45, 0.55, 0.95), 0.14, 6.0))
-            self.lighting.add_light(PointLight((DOOR_CENTER - 1.0, 2.7, DOOR_Z - 2.4), (0.6, 0.75, 0.65), 0.2, 4.5))
+            self.lighting.add_light(PointLight((-0.5, 2.4, 0.4), (0.45, 0.55, 0.95), profile["fill_intensity"] * 0.7, 6.0))
+            self.lighting.add_light(PointLight((DOOR_CENTER - 1.0, 2.7, DOOR_Z - 2.4), (0.6, 0.75, 0.65), profile["fill_intensity"], 4.5))
         self.flashlight = Flashlight(self.lighting, intensity=3.4, radius=14.0)
         self.cam_light = PointLight((0.0, 2.5, 0.0), CAM_LIGHT, 1.0, 16.0)
         self.cam_light.enabled = False
         self.lighting.add_light(self.cam_light)
-        leaf = GameObject(data.door_leaf, cast=True, gloss=0.05)
+        leaf = GameObject(data.door_leaf, cast=True, gloss=0.0 if potato else 0.05)
         self.world.add(leaf)
         self.door = Door(leaf, data.door_hinge, 0.0, -1.0, DOOR_PUSH, 5.0, self.door_event)
         self.door_spot = self.interaction.add(Hotspot("Door", (DOOR_CENTER, 1.2, DOOR_Z), 1.1, self.go_door, True, 14.0))
@@ -226,6 +233,7 @@ class ClassroomScene(Scene):
             self.build()
         self.night = night
         self.time = 0.0
+        self.objective_timer = 8.0
         self.state = "seat"
         self.tutorial = night == 1 and not self.game.progress.flag("door_hint")
         self.hint_stage = 0
@@ -460,6 +468,8 @@ class ClassroomScene(Scene):
 
     def update(self, dt):
         self.time += dt
+        if self.objective_timer > 0.0 and self.state != "laptop":
+            self.objective_timer = max(0.0, self.objective_timer - dt)
         if self.rig.busy:
             self.rig.update(dt)
         elif self.state != "laptop":
@@ -496,7 +506,7 @@ class ClassroomScene(Scene):
         targets = (0.25 if gate > 0.9 else 1.0, 0.1 if math.sin(t * 1.7) * math.sin(t * 5.1 + 2.0) > 0.45 else 0.85)
         for i in range(len(self.tube_lights)):
             self.flicker[i] = damp(self.flicker[i], targets[i % 2] * (0.94 + 0.06 * n), 30.0, dt)
-            self.tube_lights[i].intensity = 0.6 * self.flicker[i]
+            self.tube_lights[i].intensity = self.tube_intensity * self.flicker[i]
             k = 0.35 + 0.65 * self.flicker[i]
             self.tube_objects[i].color = (TUBE_COLOR[0] * k, TUBE_COLOR[1] * k, TUBE_COLOR[2] * k)
         self.emit_dust(dt)
@@ -625,6 +635,19 @@ class ClassroomScene(Scene):
 
     def draw_feed(self, sc):
         cam = self.monitor.camera
+        if self.game.quality == "potato":
+            if cam.audio_only:
+                self.game.clear((70, 72, 72))
+            else:
+                view = self.camera
+                view.position = cam.position
+                view.rotation = (cam.pitch, math.radians(cam.yaw), 0.0)
+                view.fov = cam.fov
+                self.game.clear(self.lighting.clear_color())
+                self.renderer.render(view, self.world)
+                view.fov = 62.0
+            self.monitor.draw(sc, self.clock, self.night, self.power)
+            return
         if cam.audio_only:
             self.game.clear((70, 72, 72))
             self.game.fx.draw(sc, grain=0.6, scanlines=0.3, vignette=0.5, glitch_bars=True)
@@ -642,6 +665,7 @@ class ClassroomScene(Scene):
     def draw(self, sc):
         if self.state == "laptop":
             self.draw_feed(sc)
+            self.draw_objective(sc)
             return
         pose = self.eye
         self.apply_camera(pose.position, pose.yaw, self.rig.roll)
@@ -649,6 +673,7 @@ class ClassroomScene(Scene):
         self.renderer.render(self.camera, self.world)
         sc.text(self.clock, 1275, 7, HUD_WHITE, 32, "right", "top", False, True)
         sc.text(f"{translate(self.game.settings.language, 'night')} {self.night}", 1275, 45, HUD_WHITE, 20, "right", "top", False, True)
+        self.draw_objective(sc)
         sc.text(f"{translate(self.game.settings.language, 'power')}: {self.power}%", 17, 621, HUD_WHITE, 30, "left", "top", False, True)
         sc.text(f"{translate(self.game.settings.language, 'usage')}:", 16, 667, HUD_WHITE, 30, "left", "top", False, True)
         text = self.hint_text() if self.tutorial else None
@@ -668,4 +693,18 @@ class ClassroomScene(Scene):
         self.light_button.draw(sc)
         if self.state == "seat":
             self.cam_button.draw(sc)
-        self.game.fx.draw(sc, grain=0.045, scanlines=0.04, vignette=0.0 if self.game.quality == "low" else 0.7, glitch_bars=False)
+        profile = self.game.profile
+        vignette = 0.0 if self.game.quality in ("potato", "low") else 0.7
+        self.game.fx.draw(sc, grain=profile["grain"], scanlines=profile["scanlines"], vignette=vignette, glitch_bars=False)
+
+    def draw_objective(self, sc):
+        if self.objective_timer <= 0.0:
+            return
+        alpha = int(220 * min(1.0, (8.0 - self.objective_timer) * 3.0, self.objective_timer))
+        if alpha <= 0:
+            return
+        sc.rect(360, 18, 560, 82, (12, 12, 14, alpha))
+        color = (255, 255, 255, alpha)
+        lang = self.language()
+        sc.text(translate(lang, "objective_survive"), 640, 34, color, 25, "center", "top", True)
+        sc.text(translate(lang, "objective_advice"), 640, 65, color, 18, "center", "top")

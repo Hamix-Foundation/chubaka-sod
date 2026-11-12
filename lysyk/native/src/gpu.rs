@@ -11,6 +11,8 @@ pub enum Api {
     Auto,
     Vulkan,
     Gl,
+    #[cfg(target_os = "windows")]
+    Dx12,
 }
 
 impl Api {
@@ -19,6 +21,12 @@ impl Api {
             "" | "auto" => Ok(Api::Auto),
             "vulkan" | "vk" => Ok(Api::Vulkan),
             "gl" | "opengl" | "gles" | "opengles" => Ok(Api::Gl),
+            "dx12" | "directx" | "direct3d12" => {
+                #[cfg(target_os = "windows")]
+                { Ok(Api::Dx12) }
+                #[cfg(not(target_os = "windows"))]
+                { Err(PyRuntimeError::new_err("DirectX 12 is only available on Windows")) }
+            }
             other => Err(PyRuntimeError::new_err(format!(
                 "unknown graphics API '{other}' (use auto, vulkan or gl)"
             ))),
@@ -31,6 +39,10 @@ impl Api {
             && wgpu::Instance::enabled_backend_features().contains(wgpu::Backends::VULKAN)
         {
             v.push(("Vulkan", wgpu::Backends::VULKAN));
+        }
+        #[cfg(target_os = "windows")]
+        if matches!(self, Api::Dx12) && wgpu::Instance::enabled_backend_features().contains(wgpu::Backends::DX12) {
+            v.push(("Direct3D 12", wgpu::Backends::DX12));
         }
         if matches!(self, Api::Auto | Api::Gl)
             && wgpu::Instance::enabled_backend_features().contains(wgpu::Backends::GL)
@@ -154,12 +166,19 @@ pub struct FrameState {
     pub msaa_supported: bool,
     pub width: u32,
     pub height: u32,
+    pub render_scale: f32,
     pub clear: [f32; 3],
     pub encoder: Option<wgpu::CommandEncoder>,
     pub frame_view: Option<wgpu::TextureView>,
     pub pass_recorded: bool,
+    scene_texture: Option<wgpu::Texture>,
+    scene_view: Option<wgpu::TextureView>,
     msaa_view: Option<wgpu::TextureView>,
     depth_view: Option<wgpu::TextureView>,
+    upscale_layout: Option<wgpu::BindGroupLayout>,
+    upscale_pipeline: Option<wgpu::RenderPipeline>,
+    upscale_sampler: Option<wgpu::Sampler>,
+    upscale_bind_group: Option<wgpu::BindGroup>,
     att_size: (u32, u32, u32),
     pub scene_stats: SceneStats,
     pub epoch: u64,
@@ -247,7 +266,15 @@ pub fn open(
                 wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits());
             let desc = wgpu::DeviceDescriptor {
                 label: Some("lysyk"),
-                required_features: wgpu::Features::empty(),
+                required_features: if info.backend == wgpu::Backend::Vulkan
+                    && adapter
+                        .features()
+                        .contains(wgpu::Features::EXPERIMENTAL_RAY_QUERY)
+                {
+                    wgpu::Features::EXPERIMENTAL_RAY_QUERY
+                } else {
+                    wgpu::Features::empty()
+                },
                 required_limits: limits,
                 ..Default::default()
             };
@@ -275,12 +302,19 @@ pub fn open(
                             msaa_supported: msaa_ok,
                             width,
                             height,
+                            render_scale: 1.0,
                             clear: [0.0; 3],
                             encoder: None,
                             frame_view: None,
                             pass_recorded: false,
+                            scene_texture: None,
+                            scene_view: None,
                             msaa_view: None,
                             depth_view: None,
+                            upscale_layout: None,
+                            upscale_pipeline: None,
+                            upscale_sampler: None,
+                            upscale_bind_group: None,
                             att_size: (0, 0, 0),
                             scene_stats: SceneStats::default(),
                             epoch: 0,
@@ -390,20 +424,145 @@ impl Gpu {
             st.epoch += 1;
         }
     }
+
+    pub fn set_render_scale(&self, scale: f32) {
+        let mut st = self.state.lock().unwrap();
+        let scale = scale.clamp(0.2, 1.0);
+        if (st.render_scale - scale).abs() > 0.001 {
+            st.render_scale = scale;
+            st.att_size = (0, 0, 0);
+            st.epoch += 1;
+        }
+    }
+
+    pub fn upscale_scene(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+    ) {
+        let mut st = self.state.lock().unwrap();
+        st.upscale_scene(encoder, target);
+    }
 }
 
 impl FrameState {
     pub fn ensure_attachments(&mut self, device: &wgpu::Device) {
-        let key = (self.width, self.height, self.sample_count);
+        let render_width = (self.width as f32 * self.render_scale).round().max(1.0) as u32;
+        let render_height = (self.height as f32 * self.render_scale).round().max(1.0) as u32;
+        let key = (render_width, render_height, self.sample_count);
         if self.att_size == key {
             return;
         }
         self.att_size = key;
         let size = wgpu::Extent3d {
-            width: self.width.max(1),
-            height: self.height.max(1),
+            width: render_width,
+            height: render_height,
             depth_or_array_layers: 1,
         };
+        let scaled = render_width != self.width || render_height != self.height;
+        self.scene_texture = if scaled {
+            Some(device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("scaled scene"),
+                size,
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: self.format,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            }))
+        } else {
+            None
+        };
+        self.scene_view = self
+            .scene_texture
+            .as_ref()
+            .map(|texture| texture.create_view(&wgpu::TextureViewDescriptor::default()));
+        if let Some(scene_view) = self.scene_view.as_ref() {
+            if self.upscale_layout.is_none() {
+                let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("upscale layout"),
+                    entries: &[
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::FRAGMENT,
+                            ty: wgpu::BindingType::Texture {
+                                sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::FRAGMENT,
+                            ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                            count: None,
+                        },
+                    ],
+                });
+                let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+                    label: Some("nearest upscale"),
+                    mag_filter: wgpu::FilterMode::Nearest,
+                    min_filter: wgpu::FilterMode::Nearest,
+                    mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+                    ..Default::default()
+                });
+                let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some("upscale shader"),
+                    source: wgpu::ShaderSource::Wgsl(include_str!("shaders/upscale.wgsl").into()),
+                });
+                let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: Some("upscale pipeline layout"),
+                    bind_group_layouts: &[Some(&layout)],
+                    immediate_size: 0,
+                });
+                let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                    label: Some("upscale pipeline"),
+                    layout: Some(&pipeline_layout),
+                    vertex: wgpu::VertexState {
+                        module: &shader,
+                        entry_point: Some("vs"),
+                        compilation_options: Default::default(),
+                        buffers: &[],
+                    },
+                    primitive: wgpu::PrimitiveState::default(),
+                    depth_stencil: None,
+                    multisample: wgpu::MultisampleState::default(),
+                    fragment: Some(wgpu::FragmentState {
+                        module: &shader,
+                        entry_point: Some("fs"),
+                        compilation_options: Default::default(),
+                        targets: &[Some(wgpu::ColorTargetState {
+                            format: self.format,
+                            blend: None,
+                            write_mask: wgpu::ColorWrites::ALL,
+                        })],
+                    }),
+                    multiview_mask: None,
+                    cache: None,
+                });
+                self.upscale_layout = Some(layout);
+                self.upscale_sampler = Some(sampler);
+                self.upscale_pipeline = Some(pipeline);
+            }
+            self.upscale_bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("upscale bind group"),
+                layout: self.upscale_layout.as_ref().unwrap(),
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(scene_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(self.upscale_sampler.as_ref().unwrap()),
+                    },
+                ],
+            }));
+        } else {
+            self.upscale_bind_group = None;
+        }
         let mk = |format, label| {
             device
                 .create_texture(&wgpu::TextureDescriptor {
@@ -440,9 +599,10 @@ impl FrameState {
         };
         self.pass_recorded = true;
         let frame = self.frame_view.as_ref()?;
+        let scene = self.scene_view.as_ref().unwrap_or(frame);
         let (view, resolve, store) = match &self.msaa_view {
-            Some(m) => (m, Some(frame), wgpu::StoreOp::Discard),
-            None => (frame, None, wgpu::StoreOp::Store),
+            Some(m) => (m, Some(scene), wgpu::StoreOp::Discard),
+            None => (scene, None, wgpu::StoreOp::Store),
         };
         let depth = self.depth_view.as_ref()?;
         let enc = self.encoder.as_mut()?;
@@ -469,5 +629,44 @@ impl FrameState {
             occlusion_query_set: None,
             multiview_mask: None,
         }))
+    }
+
+    pub fn render_size(&self) -> (u32, u32) {
+        (
+            (self.width as f32 * self.render_scale).round().max(1.0) as u32,
+            (self.height as f32 * self.render_scale).round().max(1.0) as u32,
+        )
+    }
+
+    fn upscale_scene(&mut self, encoder: &mut wgpu::CommandEncoder, target: &wgpu::TextureView) {
+        let (Some(pipeline), Some(bind_group)) =
+            (self.upscale_pipeline.as_ref(), self.upscale_bind_group.as_ref())
+        else {
+            return;
+        };
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("upscale scene"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: target,
+                depth_slice: None,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: self.clear[0] as f64,
+                        g: self.clear[1] as f64,
+                        b: self.clear[2] as f64,
+                        a: 1.0,
+                    }),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
+        pass.set_pipeline(pipeline);
+        pass.set_bind_group(0, bind_group, &[]);
+        pass.draw(0..3, 0..1);
     }
 }

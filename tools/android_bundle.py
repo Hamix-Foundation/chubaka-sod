@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import os
 import sys
 import tarfile
@@ -75,6 +76,13 @@ def main(argv=None):
         total += walk(os.path.join(ROOT, "chubaka"), "app/chubaka", tar)
         total += walk(os.path.join(ROOT, "assets"), "app/assets", tar)
     size = os.path.getsize(a.out) / 1048576.0
+    digest = hashlib.sha256()
+    with open(a.out, "rb") as bundle:
+        for chunk in iter(lambda: bundle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    identity = os.path.join(os.path.dirname(a.out), "bundle.sha256")
+    with open(identity, "w", encoding="ascii") as stamp:
+        stamp.write(digest.hexdigest())
     print(f"{total} files, {size:.1f} MiB -> {a.out}")
     return 0
 

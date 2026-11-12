@@ -5,11 +5,13 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use pyo3::prelude::*;
+use rayon::prelude::*;
 use winit::platform::android::activity::AndroidApp;
 
 static APP: OnceLock<AndroidApp> = OnceLock::new();
 
 const BUNDLE: &str = "bundle.tar";
+const BUNDLE_ID: &str = "bundle.sha256";
 const BOOT: &str = include_str!("android_boot.py");
 
 pub fn app() -> Option<AndroidApp> {
@@ -38,6 +40,17 @@ fn read_bundle(app: &AndroidApp) -> io::Result<Vec<u8>> {
     Ok(data)
 }
 
+fn read_bundle_identity(app: &AndroidApp) -> io::Result<Option<String>> {
+    let name = CString::new(BUNDLE_ID).unwrap();
+    let Some(mut asset) = app.asset_manager().open(&name) else {
+        return Ok(None);
+    };
+    let mut identity = String::new();
+    asset.read_to_string(&mut identity)?;
+    let identity = identity.trim();
+    Ok((!identity.is_empty()).then(|| identity.to_string()))
+}
+
 fn field(block: &[u8], from: usize, to: usize) -> &[u8] {
     let raw = &block[from..to];
     let end = raw.iter().position(|b| *b == 0).unwrap_or(raw.len());
@@ -64,6 +77,7 @@ fn safe_join(root: &Path, name: &str) -> Option<PathBuf> {
 fn extract(data: &[u8], root: &Path) -> io::Result<()> {
     let mut pos = 0usize;
     let mut long_name: Option<String> = None;
+    let mut files = Vec::new();
     while pos + 512 <= data.len() {
         let block = &data[pos..pos + 512];
         if block.iter().all(|b| *b == 0) {
@@ -94,10 +108,7 @@ fn extract(data: &[u8], root: &Path) -> io::Result<()> {
                 match kind {
                     b'5' => fs::create_dir_all(&path)?,
                     b'0' | 0 => {
-                        if let Some(parent) = path.parent() {
-                            fs::create_dir_all(parent)?;
-                        }
-                        fs::write(&path, &data[body_start..body_end])?;
+                        files.push((path, body_start, body_end));
                     }
                     _ => {}
                 }
@@ -105,20 +116,29 @@ fn extract(data: &[u8], root: &Path) -> io::Result<()> {
         }
         pos = body_start + size.div_ceil(512) * 512;
     }
-    Ok(())
+    files.par_iter().try_for_each(|(path, start, end)| {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(path, &data[*start..*end])
+    })
 }
 
 fn prepare(app: &AndroidApp, root: &Path) -> io::Result<()> {
-    let data = read_bundle(app)?;
     let stamp = root.join("bundle.stamp");
-    let current = fingerprint(&data).to_string();
-    let ready = root.join("py").is_dir()
-        && fs::read_to_string(&stamp)
-            .map(|s| s == current)
-            .unwrap_or(false);
-    if ready {
-        return Ok(());
+    let identity = read_bundle_identity(app)?;
+    if let Some(identity) = identity.as_ref() {
+        let ready = root.join("py").is_dir()
+            && root.join("app").is_dir()
+            && fs::read_to_string(&stamp)
+                .map(|s| s.trim() == identity)
+                .unwrap_or(false);
+        if ready {
+            return Ok(());
+        }
     }
+    let data = read_bundle(app)?;
+    let current = identity.unwrap_or_else(|| fingerprint(&data).to_string());
     for dir in ["py", "app"] {
         let p = root.join(dir);
         if p.exists() {

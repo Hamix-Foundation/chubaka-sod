@@ -204,7 +204,17 @@ class Audio:
         with self.lock:
             for v in self.voices:
                 if v.bus == bus:
-                    v.stop(fade)
+                    if isinstance(v, AndroidVoice) and fade <= 0.0:
+                        if self.android_pool is not None and v.stream:
+                            try:
+                                self.android_pool.stop(v.stream)
+                            except Exception:
+                                pass
+                        v.stream = 0
+                        v.finished = True
+                    else:
+                        v.stop(fade)
+            self.voices = [v for v in self.voices if not v.finished]
 
     def stop_all(self):
         with self.lock:
@@ -328,7 +338,7 @@ class AndroidVoice:
                 except Exception:
                     self.finished = True
         elif self.sound.native_id is not None:
-            self.stream = pool.play(self.sound.native_id, gain, gain, -1 if self.loop else 0)
+            self.finished = True
 
     def pause(self):
         if self.stream and not self.paused:
